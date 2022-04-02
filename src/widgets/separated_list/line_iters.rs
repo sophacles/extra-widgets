@@ -1,61 +1,292 @@
-use crate::widgets::ListItem;
+use std::collections::VecDeque;
 
-struct ViewPort {
-    pos: usize,
-    height: usize,
+use tui::{style::Style, text::Spans};
+
+use crate::widgets::{separated_list::Separator, ListItem};
+
+#[derive(Debug)]
+pub(super) struct DisplayLine<'a> {
+    pub(super) style: Style,
+    pub(super) line: Spans<'a>,
+    pub(super) must_display: bool,
 }
 
-impl ViewPort {
-    pub fn top(&self) -> usize {
-        self.pos
-    }
+struct ToLines<'a> {
+    style: Style,
+    text_items: VecDeque<Spans<'a>>,
+    selected: bool,
+}
 
-    pub fn bottom(&self) -> usize {
-        self.pos + self.height.saturating_sub(1)
-    }
-
-    pub fn move_to_hold(&mut self, item: &DisplayItem) {
-        // If the last line to show is below the window, move the window down to it
-        if item.last_display_line() > self.bottom() {
-            self.pos = item.last_display_line().saturating_sub(self.height - 1);
-        }
-
-        // At this point, we either didn't change position above, which means that the
-        // window may have been too low because the selection moved up sine the last
-        // run.
-        // Or we adjusted to fit the item, but it's larger than the viewport.
-        //
-        // In either case move the window so that the start of the item is displayed
-        if item.first_display_line() < self.pos {
-            self.pos = item.first_display_line();
+impl<'a> From<ListItem<'a>> for ToLines<'a> {
+    fn from(item: ListItem<'a>) -> Self {
+        Self {
+            style: item.style,
+            text_items: VecDeque::from(item.content.lines),
+            selected: item.selected,
         }
     }
 }
 
-struct DisplayItem<'a> {
-    item: ListItem<'a>,
-    line_pos: usize,
-    separated: bool,
+impl<'a> Iterator for ToLines<'a> {
+    type Item = DisplayLine<'a>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let res = DisplayLine {
+            style: self.style,
+            line: self.text_items.pop_front()?,
+            must_display: self.selected,
+        };
+        Some(res)
+    }
 }
 
-impl<'a> DisplayItem<'a> {
-    fn first_display_line(&self) -> usize {
-        if self.separated {
-            self.line_pos.saturating_sub(1)
-        } else {
-            self.line_pos
+pub(super) struct Basic<'a, I: IntoIterator<Item = ListItem<'a>>> {
+    items: I::IntoIter,
+    current: Option<ToLines<'a>>,
+}
+
+impl<'a, I: IntoIterator<Item = ListItem<'a>>> Basic<'a, I> {
+    fn new(items: I) -> Self {
+        let mut items = items.into_iter();
+        let current = items.next().map(|it| it.into());
+        Self { items, current }
+    }
+}
+
+impl<'a, I: IntoIterator<Item = ListItem<'a>>> Iterator for Basic<'a, I> {
+    type Item = DisplayLine<'a>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let lines = self.current.as_mut()?;
+        match lines.next() {
+            Some(l) => Some(l),
+            None => {
+                let mut new_lines: ToLines = self.items.next()?.into();
+                let res = new_lines.next();
+                self.current = Some(new_lines);
+                res
+            }
+        }
+    }
+}
+
+pub(super) struct Separated<'a, I: IntoIterator<Item = ListItem<'a>>> {
+    items: std::iter::Peekable<I::IntoIter>,
+    current: Option<ToLines<'a>>,
+    separator: Separator,
+    last_line_selected: bool,
+}
+
+impl<'a, I: IntoIterator<Item = ListItem<'a>>> Separated<'a, I> {
+    fn new(items: I, separator: Separator) -> Self {
+        let mut items = items.into_iter().peekable();
+        // kick start the iterator to just handle the "current ended, must add separator"
+        // case immediately so we start with a separator.
+        let current = items.peek().map(|next| {
+            //separator.cycle_color(next.style.bg);
+            ToLines {
+                style: Style::default(),
+                text_items: VecDeque::new(),
+                selected: next.selected,
+            }
+        });
+        Self {
+            items,
+            current,
+            separator,
+            last_line_selected: false,
+        }
+    }
+}
+
+impl<'a, I: IntoIterator<Item = ListItem<'a>>> Iterator for Separated<'a, I> {
+    type Item = DisplayLine<'a>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let lines = self.current.as_mut()?;
+
+        let res = match lines.next() {
+            Some(l) => l,
+            None => match self.items.next() {
+                Some(next) => {
+                    let next_selected = next.selected;
+                    self.separator.cycle_color(next.style.bg);
+                    self.current = Some(next.into());
+                    self.separator
+                        .display_line(next_selected || self.last_line_selected)
+                }
+                None => {
+                    self.current = None;
+                    self.separator.cycle_default();
+                    self.separator.display_line(self.last_line_selected)
+                }
+            },
+        };
+        self.last_line_selected = res.must_display;
+        //println!(
+        //    "Returning: {} {} {:?} {:?}",
+        //    res.line.0[0].content, res.must_display, res.style.bg, res.style.fg
+        //);
+        Some(res)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use tui::style::Color;
+
+    use super::*;
+    use tui::symbols::bar::HALF;
+
+    #[test]
+    fn to_lines() {
+        let style = Style::default().fg(Color::Red).bg(Color::Blue);
+        let it = ListItem::new("a\nb\nc").style(style);
+
+        for (dl, s) in ToLines::from(it).zip(["a", "b", "c"]) {
+            assert_eq!(dl.line, Spans::from(s));
+            assert_eq!(dl.style, style);
         }
     }
 
-    pub fn height(&self) -> usize {
-        self.item.height()
+    #[test]
+    fn to_lines_selected() {
+        let mut item = ListItem::new("a\nb");
+        item.selected = true;
+
+        for i in ToLines::from(item) {
+            assert!(i.must_display)
+        }
     }
 
-    pub(super) fn last_display_line(&self) -> usize {
-        if self.separated {
-            self.height()
-        } else {
-            self.height() - 1
+    #[test]
+    fn basic_display_lines() {
+        let mut items = vec![ListItem::new("a\nb\nc"), ListItem::new("d\ne")];
+        items[1].selected = true;
+        for (dl, (t, s)) in Basic::new(items).zip([
+            ("a", false),
+            ("b", false),
+            ("c", false),
+            ("d", true),
+            ("e", true),
+        ]) {
+            assert_eq!(dl.line, Spans::from(t));
+            assert_eq!(dl.must_display, s);
+        }
+    }
+
+    #[test]
+    fn separated_display_lines_end_selected() {
+        let sstyle = Style::default().bg(Color::Red).fg(Color::Blue);
+        let mut items = vec![
+            ListItem::new("a\nb\nc"),
+            ListItem::new("d\ne").style(sstyle),
+        ];
+        items[1].selected = true;
+        for (dl, (t, s, bg, fg)) in
+            Separated::new(items, Separator::new(1, Style::default())).zip([
+                (HALF, false, None, None),
+                ("a", false, None, None),
+                ("b", false, None, None),
+                ("c", false, None, None),
+                (HALF, true, None, Some(Color::Red)),
+                ("d", true, Some(Color::Red), Some(Color::Blue)),
+                ("e", true, Some(Color::Red), Some(Color::Blue)),
+                (HALF, true, Some(Color::Red), None),
+            ])
+        {
+            assert_eq!(dl.line, Spans::from(t));
+            assert_eq!(dl.must_display, s);
+            assert_eq!(dl.style.bg, bg);
+            assert_eq!(dl.style.fg, fg);
+        }
+    }
+
+    #[test]
+    fn separated_display_lines_begin_selected() {
+        let sstyle = Style::default().bg(Color::Red).fg(Color::Blue);
+        let mut items = vec![
+            ListItem::new("a\nb\nc").style(sstyle),
+            ListItem::new("d\ne"),
+        ];
+        items[0].selected = true;
+        for (dl, (t, s, bg, fg)) in
+            Separated::new(items, Separator::new(1, Style::default())).zip([
+                (HALF, true, None, Some(Color::Red)),
+                ("a", true, Some(Color::Red), Some(Color::Blue)),
+                ("b", true, Some(Color::Red), Some(Color::Blue)),
+                ("c", true, Some(Color::Red), Some(Color::Blue)),
+                (HALF, true, Some(Color::Red), None),
+                ("d", false, None, None),
+                ("e", false, None, None),
+                (HALF, false, None, None),
+            ])
+        {
+            assert_eq!(dl.line, Spans::from(t));
+            assert_eq!(dl.must_display, s);
+            assert_eq!(dl.style.bg, bg);
+            assert_eq!(dl.style.fg, fg);
+        }
+    }
+
+    #[test]
+    fn separated_display_lines_middle_selected() {
+        let sstyle = Style::default().bg(Color::Red).fg(Color::Blue);
+        let mut items = vec![
+            ListItem::new("a\nb\nc"),
+            ListItem::new("d\ne").style(sstyle),
+            ListItem::new("f\ng"),
+        ];
+        items[1].selected = true;
+        for (dl, (t, s, bg, fg)) in
+            Separated::new(items, Separator::new(1, Style::default())).zip([
+                (HALF, false, None, None),
+                ("a", false, None, None),
+                ("b", false, None, None),
+                ("c", false, None, None),
+                (HALF, true, None, Some(Color::Red)),
+                ("d", true, Some(Color::Red), Some(Color::Blue)),
+                ("e", true, Some(Color::Red), Some(Color::Blue)),
+                (HALF, true, Some(Color::Red), None),
+                ("f", false, None, None),
+                ("g", false, None, None),
+                (HALF, false, None, None),
+            ])
+        {
+            assert_eq!(dl.line, Spans::from(t));
+            assert_eq!(dl.must_display, s, "line: {:?}", dl);
+            assert_eq!(dl.style.bg, bg);
+            assert_eq!(dl.style.fg, fg);
+        }
+    }
+
+    #[test]
+    fn separated_display_lines_middle_selected_styled_items() {
+        let fstyle = Style::default().bg(Color::Cyan);
+        let sstyle = Style::default().bg(Color::Red).fg(Color::Blue);
+        let lstyle = Style::default().bg(Color::Green);
+        let mut items = vec![
+            ListItem::new("a\nb\nc").style(fstyle),
+            ListItem::new("d\ne").style(sstyle),
+            ListItem::new("f\ng").style(lstyle),
+        ];
+        items[1].selected = true;
+        for (dl, (t, s, bg, fg)) in
+            Separated::new(items, Separator::new(1, Style::default())).zip([
+                (HALF, false, None, Some(Color::Cyan)),
+                ("a", false, Some(Color::Cyan), None),
+                ("b", false, Some(Color::Cyan), None),
+                ("c", false, Some(Color::Cyan), None),
+                (HALF, true, Some(Color::Cyan), Some(Color::Red)),
+                ("d", true, Some(Color::Red), Some(Color::Blue)),
+                ("e", true, Some(Color::Red), Some(Color::Blue)),
+                (HALF, true, Some(Color::Red), Some(Color::Green)),
+                ("f", false, Some(Color::Green), None),
+                ("g", false, Some(Color::Green), None),
+                (HALF, false, Some(Color::Green), None),
+            ])
+        {
+            assert_eq!(dl.line, Spans::from(t));
+            assert_eq!(dl.must_display, s, "line: {:?}", dl);
+            assert_eq!(dl.style.bg, bg);
+            assert_eq!(dl.style.fg, fg);
         }
     }
 }

@@ -44,4 +44,13 @@ impl<'a> Separator {
         res.line_pos = pos;
         res
     }
+
+    pub(super) fn display_line(&self, must_display: bool) -> DisplayLine<'a> {
+        let line = HALF.repeat(self.width);
+        DisplayLine {
+            style: self.curr_style,
+            line: line.into(),
+            must_display,
+        }
+    }
 }
