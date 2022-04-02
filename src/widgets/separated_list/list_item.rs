@@ -21,8 +21,9 @@ impl<'a> ListItem<'a> {
         }
     }
 
-    pub fn style(&mut self, style: Style) {
+    pub fn style(mut self, style: Style) -> Self {
         self.style = style;
+        self
     }
 
     pub fn height(&self) -> usize {

@@ -30,7 +30,7 @@ impl<'a> Separator {
     pub(super) fn get_list_item(&self, pos: usize) -> ListItem<'a> {
         let line = HALF.repeat(self.width);
         let mut res = ListItem::new(line);
-        res.style(self.style);
+        res = res.style(self.curr_style);
         res.line_pos = pos;
         res
     }

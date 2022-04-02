@@ -71,19 +71,20 @@ fn draw<B: Backend>(state: &mut ListState, f: &mut Frame<B>) {
         .border_type(BorderType::Thick)
         .style(bstyle);
 
+    let style6 = Style::default().fg(Color::Red).bg(Color::Green);
     let items = vec![
-        ListItem::new("0:one"),               // f:0, l:0   | f:1, l:1
-        ListItem::new("1:two\n.\n."),         // f:1, l:3   | f:3, l:5
-        ListItem::new("2:three\n."),          // f:4, l:5   | f:7, l:8
-        ListItem::new("3:four"),              // f:6, l:6   | f:10, l:10
-        ListItem::new("4:five\n."),           // f:7, l:8   | f:12, l:13
-        ListItem::new("5:six"),               // f:9, l:9   | f:15, l:15
-        ListItem::new("6:seven\n...and 1/2"), // f:10, l:11 | f:17, l:18
-        ListItem::new("7:eight"),             // f:12, l:12 | f:20, l:20
+        ListItem::new("0:one"),                             // f:0, l:0   | f:1, l:1
+        ListItem::new("1:two\n.\n."),                       // f:1, l:3   | f:3, l:5
+        ListItem::new("2:three\n."),                        // f:4, l:5   | f:7, l:8
+        ListItem::new("3:four"),                            // f:6, l:6   | f:10, l:10
+        ListItem::new("4:five\n."),                         // f:7, l:8   | f:12, l:13
+        ListItem::new("5:six"),                             // f:9, l:9   | f:15, l:15
+        ListItem::new("6:seven\n...and 1/2").style(style6), // f:10, l:11 | f:17, l:18
+        ListItem::new("7:eight"),                           // f:12, l:12 | f:20, l:20
     ];
 
     let sstyle = Style::default().bg(Color::Blue).fg(Color::White);
-    let dstyle = Style::default().bg(Color::Black).fg(Color::White);
+    let dstyle = Style::default().bg(Color::LightYellow).fg(Color::White);
 
     let stupid = SeparatedList::new()
         .block(bounds)
