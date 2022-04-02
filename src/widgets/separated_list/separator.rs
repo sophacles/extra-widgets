@@ -3,28 +3,38 @@ use tui::{
     symbols::bar::HALF,
 };
 
-use super::ListItem;
+use super::{line_iters::DisplayLine, ListItem};
 
 #[derive(Clone, Copy)]
 pub struct Separator {
     width: usize,
-    style: Style,
+    init_style: Style,
+    curr_style: Style,
 }
 
 impl<'a> Separator {
     pub(super) fn new(width: usize, style: Style) -> Self {
-        let style = if style.bg.is_some() {
+        let init_style = if style.bg.is_some() {
             Style::default().bg(style.bg.unwrap())
         } else {
             Style::default()
         };
 
-        Separator { width, style }
+        Separator {
+            width,
+            init_style,
+            curr_style: init_style,
+        }
     }
 
     pub(super) fn cycle_color(&mut self, c: Option<Color>) {
-        self.style.bg = self.style.fg;
-        self.style.fg = c;
+        self.curr_style.bg = self.curr_style.fg;
+        self.curr_style.fg = c;
+    }
+
+    pub(super) fn cycle_default(&mut self) {
+        self.curr_style.bg = self.curr_style.fg;
+        self.curr_style.fg = self.init_style.bg;
     }
 
     pub(super) fn get_list_item(&self, pos: usize) -> ListItem<'a> {

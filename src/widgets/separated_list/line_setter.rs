@@ -66,7 +66,7 @@ impl<'a> LineSetter<'a> {
             new_items.push(li);
         }
 
-        sep.cycle_color(self.default_style.bg);
+        sep.cycle_default();
         new_items.push(sep.get_list_item(self.raw_height + old_len));
 
         self.raw_height += old_len + 1;
