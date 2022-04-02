@@ -35,7 +35,7 @@ impl<'a> LineSetter<'a> {
                     it.selected = true;
                     it.style = selected_style;
                 } else {
-                    it.style = default_style;
+                    it.style = default_style.patch(it.style);
                 }
                 Some(it)
             })
