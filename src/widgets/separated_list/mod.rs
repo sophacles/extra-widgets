@@ -1,8 +1,8 @@
 mod line_iters;
-mod line_setter;
 mod list_item;
 mod list_state;
 pub(crate) mod separator;
+mod viewport;
 
 use tui::{
     buffer::Buffer,
@@ -11,7 +11,6 @@ use tui::{
     widgets::{Block, StatefulWidget, Widget},
 };
 
-use line_setter::LineSetter;
 pub use list_item::ListItem;
 pub use list_state::ListState;
 pub use separator::Separator;
@@ -64,7 +63,7 @@ impl<'a> SeparatedList<'a> {
 impl<'a> StatefulWidget for SeparatedList<'a> {
     type State = ListState;
 
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+    fn render(mut self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         // Block is used for borders and such
         // Draw that first, and use the blank area inside the block for our own purposes
         let area = match self.block {
@@ -80,16 +79,32 @@ impl<'a> StatefulWidget for SeparatedList<'a> {
         // set style for whole area
         buf.set_style(area, self.default_style);
 
-        let setter = LineSetter::new(
-            area,
-            self.items,
-            state,
-            self.default_style,
-            self.selected_style,
-        )
-        .add_separators();
+        let sep = Separator::new(area.width as usize, self.default_style);
 
-        let lines = setter.get_spans();
+        let iter = self
+            .items
+            .into_iter()
+            .enumerate()
+            .map(|(i, mut it)| {
+                if i == state.selected {
+                    it.selected = true;
+                }
+                it
+            })
+            .map(|mut it| {
+                if it.selected {
+                    it.style = self.selected_style;
+                } else {
+                    it.style = self.default_style;
+                }
+                it
+            });
+
+        let lines = viewport::selection_scroll(
+            line_iters::Separated::new(iter, sep),
+            area.height as usize,
+            state.old_window_first,
+        );
         for (i, l) in lines.into_iter().enumerate() {
             let d_area = Rect {
                 x: area.x,

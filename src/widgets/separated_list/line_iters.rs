@@ -76,7 +76,7 @@ pub(super) struct Separated<'a, I: IntoIterator<Item = ListItem<'a>>> {
 }
 
 impl<'a, I: IntoIterator<Item = ListItem<'a>>> Separated<'a, I> {
-    fn new(items: I, separator: Separator) -> Self {
+    pub(super) fn new(items: I, separator: Separator) -> Self {
         let mut items = items.into_iter().peekable();
         // kick start the iterator to just handle the "current ended, must add separator"
         // case immediately so we start with a separator.
@@ -134,6 +134,19 @@ mod test {
 
     use super::*;
     use tui::symbols::bar::HALF;
+
+    #[test]
+    fn messing_around() {
+        let sstyle = Style::default().bg(Color::Red).fg(Color::Blue);
+        let mut items = vec![
+            ListItem::new("a\nb\nc"),
+            ListItem::new("d\ne").style(sstyle),
+            ListItem::new("f\ng"),
+        ];
+        items[1].selected = true;
+        let iter = items.into_iter().skip(1);
+        let x = Basic::new(iter);
+    }
 
     #[test]
     fn to_lines() {
