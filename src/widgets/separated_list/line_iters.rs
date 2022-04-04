@@ -4,6 +4,11 @@ use tui::{style::Style, text::Spans};
 
 use super::{DisplayLine, ListItem, Separator};
 
+pub enum ItemDisplay {
+    Basic,
+    Separated,
+}
+
 struct ToLines<'a> {
     style: Style,
     text_items: VecDeque<Spans<'a>>,

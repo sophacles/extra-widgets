@@ -12,6 +12,7 @@ use tui::{
     widgets::{Block, StatefulWidget, Widget},
 };
 
+pub use line_iters::ItemDisplay;
 pub use list_item::ListItem;
 pub use list_state::ListState;
 pub use separator::Separator;
@@ -29,6 +30,7 @@ pub struct SeparatedList<'a> {
     default_style: Style,
     selected_style: Style,
     window_type: WindowType,
+    item_display: ItemDisplay,
     items: Vec<ListItem<'a>>,
 }
 
@@ -40,6 +42,7 @@ impl<'a> SeparatedList<'a> {
             default_style: Style::default(),
             selected_style: Style::default(),
             window_type: WindowType::SelectionScroll,
+            item_display: ItemDisplay::Basic,
         }
     }
 
@@ -65,6 +68,11 @@ impl<'a> SeparatedList<'a> {
 
     pub fn window_type(mut self, wt: WindowType) -> Self {
         self.window_type = wt;
+        self
+    }
+
+    pub fn item_display(mut self, it: ItemDisplay) -> Self {
+        self.item_display = it;
         self
     }
 }
@@ -100,11 +108,14 @@ impl<'a> StatefulWidget for SeparatedList<'a> {
             it
         });
 
-        let lines = self.window_type.get_display_lines(
-            line_iters::Separated::new(iter, sep),
-            area.height as usize,
-            state,
-        );
+        let item_display: Box<dyn Iterator<Item = DisplayLine<'a>>> = match self.item_display {
+            ItemDisplay::Basic => Box::new(line_iters::Basic::new(iter)),
+            ItemDisplay::Separated => Box::new(line_iters::Separated::new(iter, sep)),
+        };
+
+        let lines = self
+            .window_type
+            .get_display_lines(item_display, area.height as usize, state);
 
         for (i, l) in lines.into_iter().enumerate() {
             let d_area = Rect {

@@ -12,7 +12,10 @@ use tui::{
 
 use widgets::{
     event::{Config, Event, Events},
-    widgets::{ListItem, ListState, SeparatedList},
+    widgets::{
+        separated_list::{ItemDisplay, WindowType},
+        ListItem, ListState, SeparatedList,
+    },
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -90,7 +93,8 @@ fn draw<B: Backend>(state: &mut ListState, f: &mut Frame<B>) {
         .block(bounds)
         .defualt_style(dstyle)
         .selected_style(sstyle)
-        .items(items);
+        .items(items)
+        .item_display(ItemDisplay::Separated);
 
     f.render_stateful_widget(stupid, area, state);
 }

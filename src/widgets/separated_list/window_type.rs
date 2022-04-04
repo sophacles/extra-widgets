@@ -106,7 +106,7 @@ pub(super) fn selection_scroll<'a, I>(
     items: I,
     window_size: usize,
     list_state: &mut ListState,
-) -> impl Iterator<Item = DisplayLine<'a>>
+) -> <BoundedVecDeque<I::Item> as IntoIterator>::IntoIter
 where
     I: IntoIterator<Item = DisplayLine<'a>>,
 {
