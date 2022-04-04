@@ -8,12 +8,20 @@ use tui::{
     buffer::Buffer,
     layout::Rect,
     style::Style,
+    text::Spans,
     widgets::{Block, StatefulWidget, Widget},
 };
 
 pub use list_item::ListItem;
 pub use list_state::ListState;
 pub use separator::Separator;
+
+#[derive(Debug)]
+struct DisplayLine<'a> {
+    pub(super) style: Style,
+    pub(super) line: Spans<'a>,
+    pub(super) must_display: bool,
+}
 
 pub struct SeparatedList<'a> {
     block: Option<Block<'a>>,
@@ -56,7 +64,7 @@ impl<'a> SeparatedList<'a> {
 impl<'a> StatefulWidget for SeparatedList<'a> {
     type State = ListState;
 
-    fn render(mut self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         // Block is used for borders and such
         // Draw that first, and use the blank area inside the block for our own purposes
         let area = match self.block {
@@ -68,7 +76,6 @@ impl<'a> StatefulWidget for SeparatedList<'a> {
             }
         };
 
-        //assert_eq!(area.height, 5);
         // set style for whole area
         buf.set_style(area, self.default_style);
 
@@ -90,6 +97,7 @@ impl<'a> StatefulWidget for SeparatedList<'a> {
             area.height as usize,
             state,
         );
+
         for (i, l) in lines.into_iter().enumerate() {
             let d_area = Rect {
                 x: area.x,

@@ -2,7 +2,7 @@
 pub struct ListState {
     pub(super) size: usize,
     pub(super) selected: usize,
-    pub(super) old_window_first: usize,
+    pub(super) window_first: usize,
 }
 
 impl ListState {
@@ -13,7 +13,7 @@ impl ListState {
     }
 
     pub fn set_pos(&mut self, pos: usize) {
-        self.old_window_first = pos;
+        self.window_first = pos;
     }
 
     pub fn cycle_next(&mut self) {

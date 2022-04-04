@@ -2,14 +2,7 @@ use std::collections::VecDeque;
 
 use tui::{style::Style, text::Spans};
 
-use crate::widgets::{separated_list::Separator, ListItem};
-
-#[derive(Debug)]
-pub(super) struct DisplayLine<'a> {
-    pub(super) style: Style,
-    pub(super) line: Spans<'a>,
-    pub(super) must_display: bool,
-}
+use super::{DisplayLine, ListItem, Separator};
 
 struct ToLines<'a> {
     style: Style,
@@ -39,20 +32,29 @@ impl<'a> Iterator for ToLines<'a> {
     }
 }
 
-pub(super) struct Basic<'a, I: IntoIterator<Item = ListItem<'a>>> {
+pub(super) struct Basic<'a, I>
+where
+    I: IntoIterator<Item = ListItem<'a>>,
+{
     items: I::IntoIter,
     current: Option<ToLines<'a>>,
 }
 
-impl<'a, I: IntoIterator<Item = ListItem<'a>>> Basic<'a, I> {
-    fn new(items: I) -> Self {
+impl<'a, I> Basic<'a, I>
+where
+    I: IntoIterator<Item = ListItem<'a>>,
+{
+    pub(super) fn new(items: I) -> Self {
         let mut items = items.into_iter();
         let current = items.next().map(|it| it.into());
         Self { items, current }
     }
 }
 
-impl<'a, I: IntoIterator<Item = ListItem<'a>>> Iterator for Basic<'a, I> {
+impl<'a, I> Iterator for Basic<'a, I>
+where
+    I: IntoIterator<Item = ListItem<'a>>,
+{
     type Item = DisplayLine<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         let lines = self.current.as_mut()?;
@@ -68,14 +70,20 @@ impl<'a, I: IntoIterator<Item = ListItem<'a>>> Iterator for Basic<'a, I> {
     }
 }
 
-pub(super) struct Separated<'a, I: IntoIterator<Item = ListItem<'a>>> {
+pub(super) struct Separated<'a, I>
+where
+    I: IntoIterator<Item = ListItem<'a>>,
+{
     items: std::iter::Peekable<I::IntoIter>,
     current: Option<ToLines<'a>>,
     separator: Separator,
     last_line_selected: bool,
 }
 
-impl<'a, I: IntoIterator<Item = ListItem<'a>>> Separated<'a, I> {
+impl<'a, I> Separated<'a, I>
+where
+    I: IntoIterator<Item = ListItem<'a>>,
+{
     pub(super) fn new(items: I, separator: Separator) -> Self {
         let mut items = items.into_iter().peekable();
         // kick start the iterator to just handle the "current ended, must add separator"
@@ -97,7 +105,10 @@ impl<'a, I: IntoIterator<Item = ListItem<'a>>> Separated<'a, I> {
     }
 }
 
-impl<'a, I: IntoIterator<Item = ListItem<'a>>> Iterator for Separated<'a, I> {
+impl<'a, I> Iterator for Separated<'a, I>
+where
+    I: IntoIterator<Item = ListItem<'a>>,
+{
     type Item = DisplayLine<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         let lines = self.current.as_mut()?;
@@ -120,10 +131,6 @@ impl<'a, I: IntoIterator<Item = ListItem<'a>>> Iterator for Separated<'a, I> {
             },
         };
         self.last_line_selected = res.must_display;
-        //println!(
-        //    "Returning: {} {} {:?} {:?}",
-        //    res.line.0[0].content, res.must_display, res.style.bg, res.style.fg
-        //);
         Some(res)
     }
 }
@@ -134,19 +141,6 @@ mod test {
 
     use super::*;
     use tui::symbols::bar::HALF;
-
-    #[test]
-    fn messing_around() {
-        let sstyle = Style::default().bg(Color::Red).fg(Color::Blue);
-        let mut items = vec![
-            ListItem::new("a\nb\nc"),
-            ListItem::new("d\ne").style(sstyle),
-            ListItem::new("f\ng"),
-        ];
-        items[1].selected = true;
-        let iter = items.into_iter().skip(1);
-        let x = Basic::new(iter);
-    }
 
     #[test]
     fn to_lines() {

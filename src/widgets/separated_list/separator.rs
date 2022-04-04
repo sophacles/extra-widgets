@@ -3,7 +3,7 @@ use tui::{
     symbols::bar::HALF,
 };
 
-use super::{line_iters::DisplayLine, ListItem};
+use super::DisplayLine;
 
 #[derive(Clone, Copy)]
 pub struct Separator {
@@ -35,14 +35,6 @@ impl<'a> Separator {
     pub(super) fn cycle_default(&mut self) {
         self.curr_style.bg = self.curr_style.fg;
         self.curr_style.fg = self.init_style.bg;
-    }
-
-    pub(super) fn get_list_item(&self, pos: usize) -> ListItem<'a> {
-        let line = HALF.repeat(self.width);
-        let mut res = ListItem::new(line);
-        res = res.style(self.curr_style);
-        res.line_pos = pos;
-        res
     }
 
     pub(super) fn display_line(&self, must_display: bool) -> DisplayLine<'a> {

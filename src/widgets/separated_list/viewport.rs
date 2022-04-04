@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use bounded_vec_deque::BoundedVecDeque;
 
-use super::{line_iters::DisplayLine, ListState};
+use super::{DisplayLine, ListState};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SelState {
@@ -29,16 +29,16 @@ impl Default for SelState {
 }
 
 struct Window {
-    goal_first_index: usize,
-    curr_first_index: usize,
+    goal_index: usize,
+    curr_index: usize,
     fixed: Option<usize>,
 }
 
 impl Window {
     fn new(prev_pos: usize) -> Self {
         Self {
-            goal_first_index: prev_pos,
-            curr_first_index: 0,
+            goal_index: prev_pos,
+            curr_index: 0,
             fixed: None,
         }
     }
@@ -52,19 +52,19 @@ impl Window {
     }
 
     fn advance(&mut self) {
-        if self.goal_first_index == self.curr_first_index {
-            self.goal_first_index += 1;
+        if self.goal_index == self.curr_index {
+            self.goal_index += 1;
         }
-        self.curr_first_index += 1;
+        self.curr_index += 1;
     }
 
     fn is_aligned(&self) -> bool {
-        self.goal_first_index == self.curr_first_index
+        self.goal_index == self.curr_index
     }
 
     fn can_advance(&self) -> bool {
         if let Some(s) = self.fixed {
-            self.curr_first_index < s
+            self.curr_index < s
         } else {
             true
         }
@@ -76,7 +76,7 @@ impl Display for Window {
         write!(
             f,
             "goal: {}, curr: {}, fixed: {:?}",
-            self.goal_first_index, self.curr_first_index, self.fixed
+            self.goal_index, self.curr_index, self.fixed
         )
     }
 }
@@ -89,7 +89,7 @@ pub(super) fn selection_scroll<'a, I>(
 where
     I: IntoIterator<Item = DisplayLine<'a>>,
 {
-    let mut window = Window::new(list_state.old_window_first);
+    let mut window = Window::new(list_state.window_first);
     let mut sel_state = SelState::NotSeen;
 
     let mut buffer = BoundedVecDeque::<I::Item>::new(window_size);
@@ -121,6 +121,13 @@ where
                 }
             }
             SelState::Complete => {
+                // It kind of looks like the first and second break can be consolidated.
+                // looks can be deceiving:
+                // The first break is the happy path break, we want to break here because the
+                // window is aligned with the target, and the selection is fully shown.
+                // The second break is the "give up" path, because the window can't be advanced
+                // in search of alignment, but isn't aligned either.
+
                 if window.is_aligned() {
                     break;
                 } else if window.can_advance() {
@@ -133,7 +140,7 @@ where
         }
     }
 
-    list_state.old_window_first = window.curr_first_index;
+    list_state.set_pos(window.curr_index);
     buffer.into_iter()
 }
 

@@ -29,8 +29,4 @@ impl<'a> ListItem<'a> {
     pub fn height(&self) -> usize {
         self.content.height()
     }
-
-    pub(super) fn last_line(&self) -> usize {
-        self.line_pos + self.height() - 1
-    }
 }
