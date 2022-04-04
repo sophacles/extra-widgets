@@ -19,7 +19,6 @@ pub struct SeparatedList<'a> {
     block: Option<Block<'a>>,
     default_style: Style,
     selected_style: Style,
-    hover_style: Style,
     items: Vec<ListItem<'a>>,
 }
 
@@ -30,7 +29,6 @@ impl<'a> SeparatedList<'a> {
             block: None,
             default_style: Style::default(),
             selected_style: Style::default(),
-            hover_style: Style::default(),
         }
     }
 
@@ -46,11 +44,6 @@ impl<'a> SeparatedList<'a> {
 
     pub fn selected_style(mut self, s: Style) -> Self {
         self.selected_style = s;
-        self
-    }
-
-    pub fn hover_style(mut self, s: Style) -> Self {
-        self.hover_style = s;
         self
     }
 
@@ -81,29 +74,21 @@ impl<'a> StatefulWidget for SeparatedList<'a> {
 
         let sep = Separator::new(area.width as usize, self.default_style);
 
-        let iter = self
-            .items
-            .into_iter()
-            .enumerate()
-            .map(|(i, mut it)| {
-                if i == state.selected {
-                    it.selected = true;
-                }
-                it
-            })
-            .map(|mut it| {
-                if it.selected {
-                    it.style = self.selected_style;
-                } else {
-                    it.style = self.default_style;
-                }
-                it
-            });
+        let selected = state.selected;
+        let iter = self.items.into_iter().enumerate().map(|(i, mut it)| {
+            if i == selected {
+                it.selected = true;
+                it.style = self.selected_style;
+            } else {
+                it.style = self.default_style;
+            }
+            it
+        });
 
         let lines = viewport::selection_scroll(
             line_iters::Separated::new(iter, sep),
             area.height as usize,
-            state.old_window_first,
+            state,
         );
         for (i, l) in lines.into_iter().enumerate() {
             let d_area = Rect {

@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use bounded_vec_deque::BoundedVecDeque;
 
-use super::line_iters::DisplayLine;
+use super::{line_iters::DisplayLine, ListState};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SelState {
@@ -31,16 +31,14 @@ impl Default for SelState {
 struct Window {
     goal_first_index: usize,
     curr_first_index: usize,
-    size: usize,
     fixed: Option<usize>,
 }
 
 impl Window {
-    fn new(size: usize, prev_pos: usize) -> Self {
+    fn new(prev_pos: usize) -> Self {
         Self {
             goal_first_index: prev_pos,
             curr_first_index: 0,
-            size,
             fixed: None,
         }
     }
@@ -86,28 +84,28 @@ impl Display for Window {
 pub(super) fn selection_scroll<'a, I>(
     items: I,
     window_size: usize,
-    window_pos: usize,
+    list_state: &mut ListState,
 ) -> impl Iterator<Item = DisplayLine<'a>>
 where
     I: IntoIterator<Item = DisplayLine<'a>>,
 {
-    let mut window = Window::new(window_size, window_pos);
-    let mut state = SelState::NotSeen;
+    let mut window = Window::new(list_state.old_window_first);
+    let mut sel_state = SelState::NotSeen;
 
     let mut buffer = BoundedVecDeque::<I::Item>::new(window_size);
 
     // if we haven't hit the end condition before hitting the end of the input iter,
     // just fall off and return whatever is buffered
     for (i, l) in items.into_iter().enumerate() {
-        state.toggle(l.must_display, i);
-        window.fix(state);
+        sel_state.toggle(l.must_display, i);
+        window.fix(sel_state);
         // always try to fill the window
         if !buffer.is_full() {
             buffer.push_back(l);
             continue;
         }
 
-        match state {
+        match sel_state {
             // if we haven't seen selection yet, push the window forward
             SelState::NotSeen => {
                 window.advance();
@@ -135,6 +133,7 @@ where
         }
     }
 
+    list_state.old_window_first = window.curr_first_index;
     buffer.into_iter()
 }
 
@@ -180,7 +179,9 @@ mod test {
     fn starts_fitting() {
         // starts: |a B c| d e f g h i j
         // result: a B c
-        let res: Vec<DisplayLine> = selection_scroll(make_list(1, 1), 3, 0).collect();
+        let mut state = ListState::new(10);
+        state.set_pos(0);
+        let res: Vec<DisplayLine> = selection_scroll(make_list(1, 1), 3, &mut state).collect();
 
         assert_eq!(res[0].line.0[0].content, "a");
         assert_eq!(res[1].line.0[0].content, "b");
@@ -195,7 +196,9 @@ mod test {
     fn fits_end() {
         // starts: |a b C| d e f g h i j
         // result: a b C
-        let res: Vec<DisplayLine> = selection_scroll(make_list(2, 2), 3, 0).collect();
+        let mut state = ListState::new(10);
+        state.set_pos(0);
+        let res: Vec<DisplayLine> = selection_scroll(make_list(2, 2), 3, &mut state).collect();
 
         assert_eq!(res[0].line.0[0].content, "a");
         assert_eq!(res[1].line.0[0].content, "b");
@@ -210,7 +213,9 @@ mod test {
     fn slides_to_selection() {
         // starts: |a b c| D E f g h i j
         // result: c D E
-        let res: Vec<DisplayLine> = selection_scroll(make_list(3, 4), 3, 0).collect();
+        let mut state = ListState::new(10);
+        state.set_pos(0);
+        let res: Vec<DisplayLine> = selection_scroll(make_list(3, 4), 3, &mut state).collect();
 
         assert_eq!(res[0].line.0[0].content, "c");
         assert_eq!(res[1].line.0[0].content, "d");
@@ -225,7 +230,9 @@ mod test {
     fn stops_at_fixed() {
         // starts: a b c D E |f g h| i j
         // result: D E f
-        let res: Vec<DisplayLine> = selection_scroll(make_list(3, 4), 3, 5).collect();
+        let mut state = ListState::new(10);
+        state.set_pos(5);
+        let res: Vec<DisplayLine> = selection_scroll(make_list(3, 4), 3, &mut state).collect();
 
         assert_eq!(res[0].line.0[0].content, "d");
         assert_eq!(res[1].line.0[0].content, "e");
@@ -240,7 +247,9 @@ mod test {
     fn stops_at_fixed_sel_too_big() {
         // starts: a b c D E |F G h| i j
         // result: D E F
-        let res: Vec<DisplayLine> = selection_scroll(make_list(3, 6), 3, 5).collect();
+        let mut state = ListState::new(10);
+        state.set_pos(5);
+        let res: Vec<DisplayLine> = selection_scroll(make_list(3, 6), 3, &mut state).collect();
 
         assert_eq!(res[0].line.0[0].content, "d");
         assert_eq!(res[1].line.0[0].content, "e");
@@ -255,7 +264,9 @@ mod test {
     fn stops_at_sliding_sel_too_big() {
         // starts: |a b c| D E F G h i j
         // result: D E F
-        let res: Vec<DisplayLine> = selection_scroll(make_list(3, 6), 3, 0).collect();
+        let mut state = ListState::new(10);
+        state.set_pos(0);
+        let res: Vec<DisplayLine> = selection_scroll(make_list(3, 6), 3, &mut state).collect();
 
         assert_eq!(res[0].line.0[0].content, "d");
         assert_eq!(res[1].line.0[0].content, "e");

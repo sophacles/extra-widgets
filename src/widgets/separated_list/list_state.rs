@@ -12,6 +12,10 @@ impl ListState {
         res
     }
 
+    pub fn set_pos(&mut self, pos: usize) {
+        self.old_window_first = pos;
+    }
+
     pub fn cycle_next(&mut self) {
         self.selected = (self.selected + 1) % self.size;
     }
