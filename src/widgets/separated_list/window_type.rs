@@ -4,6 +4,27 @@ use bounded_vec_deque::BoundedVecDeque;
 
 use super::{DisplayLine, ListState};
 
+pub enum WindowType {
+    SelectionScroll,
+}
+
+impl WindowType {
+    pub(super) fn get_display_lines<'a, I>(
+        &self,
+        items: I,
+        window_size: usize,
+        list_state: &mut ListState,
+    ) -> impl Iterator<Item = DisplayLine<'a>>
+    where
+        I: Iterator<Item = DisplayLine<'a>>,
+    {
+        use WindowType::*;
+        match self {
+            SelectionScroll => selection_scroll(items, window_size, list_state),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SelState {
     NotSeen,

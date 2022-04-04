@@ -1,8 +1,8 @@
 mod line_iters;
 mod list_item;
 mod list_state;
-pub(crate) mod separator;
-mod viewport;
+mod separator;
+mod window_type;
 
 use tui::{
     buffer::Buffer,
@@ -15,6 +15,7 @@ use tui::{
 pub use list_item::ListItem;
 pub use list_state::ListState;
 pub use separator::Separator;
+pub use window_type::WindowType;
 
 #[derive(Debug)]
 struct DisplayLine<'a> {
@@ -27,6 +28,7 @@ pub struct SeparatedList<'a> {
     block: Option<Block<'a>>,
     default_style: Style,
     selected_style: Style,
+    window_type: WindowType,
     items: Vec<ListItem<'a>>,
 }
 
@@ -37,6 +39,7 @@ impl<'a> SeparatedList<'a> {
             block: None,
             default_style: Style::default(),
             selected_style: Style::default(),
+            window_type: WindowType::SelectionScroll,
         }
     }
 
@@ -57,6 +60,11 @@ impl<'a> SeparatedList<'a> {
 
     pub fn items(mut self, items: Vec<ListItem<'a>>) -> Self {
         self.items = items;
+        self
+    }
+
+    pub fn window_type(mut self, wt: WindowType) -> Self {
+        self.window_type = wt;
         self
     }
 }
@@ -92,7 +100,7 @@ impl<'a> StatefulWidget for SeparatedList<'a> {
             it
         });
 
-        let lines = viewport::selection_scroll(
+        let lines = self.window_type.get_display_lines(
             line_iters::Separated::new(iter, sep),
             area.height as usize,
             state,
