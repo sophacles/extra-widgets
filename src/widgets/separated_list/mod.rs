@@ -18,11 +18,21 @@ pub use list_state::ListState;
 pub use separator::Separator;
 pub use window_type::WindowType;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct DisplayLine<'a> {
     pub(super) style: Style,
     pub(super) line: Spans<'a>,
     pub(super) must_display: bool,
+}
+
+impl<'a> DisplayLine<'a> {
+    pub fn filler(x: &'static str) -> Self {
+        Self {
+            style: Style::default(),
+            line: Spans::from(x),
+            must_display: false,
+        }
+    }
 }
 
 pub struct SeparatedList<'a> {
@@ -51,7 +61,7 @@ impl<'a> SeparatedList<'a> {
         self
     }
 
-    pub fn defualt_style(mut self, s: Style) -> Self {
+    pub fn default_style(mut self, s: Style) -> Self {
         self.default_style = s;
         self
     }

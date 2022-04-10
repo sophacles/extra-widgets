@@ -2,10 +2,11 @@ use std::fmt::Display;
 
 use bounded_vec_deque::BoundedVecDeque;
 
-use super::{DisplayLine, ListState};
+use super::{DisplayLine, ListItem, ListState};
 
 pub enum WindowType {
     SelectionScroll,
+    Fixed,
 }
 
 impl WindowType {
@@ -21,6 +22,7 @@ impl WindowType {
         use WindowType::*;
         match self {
             SelectionScroll => selection_scroll(items, window_size, list_state),
+            Fixed => fixed(items, window_size, list_state),
         }
     }
 }
@@ -162,6 +164,37 @@ where
     }
 
     list_state.set_pos(window.curr_index);
+    buffer.into_iter()
+}
+
+pub(super) fn fixed<'a, I>(
+    items: I,
+    window_size: usize,
+    _list_state: &mut ListState,
+) -> <BoundedVecDeque<I::Item> as IntoIterator>::IntoIter
+where
+    I: IntoIterator<Item = DisplayLine<'a>>,
+{
+    let mut sel_state = SelState::default();
+    let mut buffer =
+        BoundedVecDeque::from_iter(std::iter::repeat(DisplayLine::filler("")).take(4), 4);
+
+    for (i, dl) in items.into_iter().enumerate() {
+        sel_state.toggle(dl.must_display, i);
+        // always try to fill the window
+        match sel_state {
+            SelState::NotSeen => {
+                buffer.push_back(dl);
+            }
+            _ => {
+                buffer.set_max_len(window_size);
+                buffer.push_back(dl);
+                if buffer.is_full() {
+                    break;
+                }
+            }
+        }
+    }
     buffer.into_iter()
 }
 

@@ -31,6 +31,10 @@ impl ListState {
         }
     }
 
+    pub fn selected(&self) -> usize {
+        self.selected
+    }
+
     pub fn resize(&mut self, size: usize) {
         self.size = size;
         if self.selected >= self.size {
