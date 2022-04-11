@@ -4,7 +4,7 @@ use termion::{event::Key, input::MouseTerminal, raw::IntoRawMode, screen::Altern
 
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Margin},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, BorderType, Borders, Paragraph},
@@ -13,11 +13,10 @@ use tui::{
 
 use widgets::{
     event::{Config, Event, Events},
-    widgets::{
-        separated_list::{ItemDisplay, WindowType},
-        ListItem, ListState, SeparatedList,
-    },
+    widgets::{separated_list::ItemDisplay, ListItem, ListState, SeparatedList},
 };
+
+mod demos;
 
 static WORDS: &str = include_str!("../wordlist.txt");
 
@@ -42,7 +41,7 @@ impl Focus {
 }
 
 #[derive(Debug)]
-struct AppState {
+pub struct AppState {
     focus: Focus,
     picker: ListState,
     examples: ListState,
@@ -162,10 +161,18 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
         );
     let chunks = list_layout.split(main_area);
     let select_list_area = chunks[0];
-    let demo_list_area = chunks[1];
+    let demo_frame_area = chunks[1];
     let code_area = chunks[2];
 
     //println!("{:?}", chunks);
+    let demo_frame = Block::default()
+        .borders(Borders::TOP)
+        .style(Style::default().fg(Color::White).bg(Color::DarkGray))
+        .title("demo")
+        .title_alignment(Alignment::Center);
+
+    let demo_list_area = demo_frame.inner(demo_frame_area);
+    f.render_widget(demo_frame, demo_frame_area);
     let selections = vec![
         ListItem::new("basic"), // 0
         ListItem::new("separated"),
@@ -173,17 +180,31 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
     ];
     state.picker.resize(3);
 
-    match state.picker.selected() {
-        0 => demos::basic(demo_list_area, state, f),
-        1 => demos::separated(demo_list_area, state, f),
-        2 => demos::fixed(demo_list_area, state, f),
-        _ => unreachable!(),
-    }
+    let demo_list_area = demo_list_area.inner(&Margin {
+        vertical: 2,
+        horizontal: 2,
+    });
 
-    let bstyle = Style::default().fg(Color::Green);
+    let code = match state.picker.selected() {
+        0 => {
+            demos::basic(demo_list_area, state, f);
+            include_str!("demos/basic.rs")
+        }
+        1 => {
+            demos::separated(demo_list_area, state, f);
+            include_str!("demos/separated.rs")
+        }
+        2 => {
+            demos::fixed(demo_list_area, state, f);
+            include_str!("demos/fixed.rs")
+        }
+        _ => unreachable!(),
+    };
+
+    let bstyle = Style::default().fg(Color::White);
     let select_bounds = Block::default()
         .borders(Borders::ALL)
-        .title("demo")
+        .title("select demo")
         .border_type(BorderType::Thick)
         .style(bstyle);
 
@@ -194,40 +215,13 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
         .items(selections)
         .item_display(ItemDisplay::Separated);
     f.render_stateful_widget(select_list, select_list_area, &mut state.picker);
-}
 
-mod demos {
-    use super::*;
-
-    pub(super) fn basic<B: Backend>(area: Rect, state: &mut AppState, f: &mut Frame<B>) {
-        let demo_items = words();
-        let demo_list = SeparatedList::default()
-            .default_style(Style::reset().bg(Color::Black).fg(Color::White))
-            .selected_style(Style::default().bg(Color::Blue).fg(Color::White))
-            .items(demo_items)
-            .item_display(ItemDisplay::Basic);
-        f.render_stateful_widget(demo_list, area, &mut state.examples);
-    }
-
-    pub(super) fn separated<B: Backend>(area: Rect, state: &mut AppState, f: &mut Frame<B>) {
-        let demo_items = words();
-        let demo_list = SeparatedList::default()
-            .default_style(Style::reset().bg(Color::Black).fg(Color::White))
-            .selected_style(Style::default().bg(Color::Blue).fg(Color::White))
-            .items(demo_items)
-            .item_display(ItemDisplay::Separated);
-        f.render_stateful_widget(demo_list, area, &mut state.examples);
-    }
-
-    pub(super) fn fixed<B: Backend>(area: Rect, state: &mut AppState, f: &mut Frame<B>) {
-        let demo_items = words();
-        let demo_list = SeparatedList::default()
-            .default_style(Style::reset().bg(Color::Black).fg(Color::White))
-            .selected_style(Style::default().bg(Color::Blue).fg(Color::White))
-            .items(demo_items)
-            .item_display(ItemDisplay::Basic)
-            .window_type(WindowType::Fixed);
-
-        f.render_stateful_widget(demo_list, area, &mut state.examples);
-    }
+    let code_block = Block::default()
+        .borders(Borders::ALL)
+        .title("code")
+        .title_alignment(Alignment::Center)
+        .border_type(BorderType::Plain)
+        .style(bstyle);
+    let code = Paragraph::new(code).block(code_block);
+    f.render_widget(code, code_area);
 }
