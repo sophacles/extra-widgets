@@ -5,10 +5,7 @@ use tui::{
     Frame,
 };
 
-use widgets::widgets::{
-    separated_list::{ItemDisplay, WindowType},
-    SeparatedList,
-};
+use widgets::separated_list::{ItemDisplay, SeparatedList, WindowType};
 
 use super::super::{words, AppState};
 

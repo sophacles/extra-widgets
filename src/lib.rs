@@ -1,1 +1,1 @@
-pub mod widgets;
+pub mod separated_list;

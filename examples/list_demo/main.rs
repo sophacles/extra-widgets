@@ -11,7 +11,7 @@ use tui::{
     Frame, Terminal,
 };
 
-use widgets::widgets::{separated_list::ItemDisplay, ListItem, ListState, SeparatedList};
+use widgets::separated_list::{ItemDisplay, ListItem, ListState, SeparatedList};
 
 mod demos;
 mod event;
