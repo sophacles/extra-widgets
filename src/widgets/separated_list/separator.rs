@@ -13,13 +13,11 @@ pub struct Separator {
 }
 
 impl<'a> Separator {
-    pub(super) fn new(width: usize, mut style: Style) -> Self {
+    pub(super) fn new(width: usize, style: Style) -> Self {
         //style.fg(Color::Reset);
-        let init_style = if style.bg.is_some() {
-            let init_color = style.bg.unwrap();
-            Style::reset().bg(init_color).fg(init_color)
-        } else {
-            Style::default()
+        let init_style = match style.bg {
+            Some(init_color) => Style::reset().bg(init_color).fg(init_color),
+            None => Style::default(),
         };
 
         Separator {

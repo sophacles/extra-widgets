@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use bounded_vec_deque::BoundedVecDeque;
 
-use super::{DisplayLine, ListItem, ListState};
+use super::{DisplayLine, ListState};
 
 pub enum WindowType {
     SelectionScroll,
