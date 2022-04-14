@@ -8,7 +8,5 @@ edition = "2021"
 
 [dependencies]
 tui = "0.17.0"
-termion = "1.5"
-textwrap = "0.13.4"
-pad = "0.1.6"
+crossterm = "0.23.2"
 bounded-vec-deque = "0.1.1"

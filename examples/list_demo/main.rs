@@ -1,6 +1,10 @@
 use std::{error::Error, io};
 
-use termion::{event::Key, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
+use crossterm::{
+    event::{self, Event, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
 
 use tui::{
     backend::{Backend, CrosstermBackend},
@@ -14,8 +18,6 @@ use tui::{
 use widgets::separated_list::{ItemDisplay, ListItem, ListState, SeparatedList};
 
 mod demos;
-mod event;
-use event::{Config, Event, Events};
 
 static WORDS: &str = include_str!("../wordlist.txt");
 
@@ -75,13 +77,11 @@ impl AppState {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let stdout = io::stdout().into_raw_mode()?;
-    let stdout = MouseTerminal::from(stdout);
-    let stdout = AlternateScreen::from(stdout);
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-
-    let events = Events::with_config(Config::without_ticker());
 
     let mut state = AppState::new(1, words().len());
 
@@ -89,22 +89,28 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mstate = &mut state;
         let _ = terminal.draw(|f| draw(mstate, f));
 
-        match events.next()? {
-            Event::Input(Key::Char(c)) if c == 'j' => {
-                state.move_down();
-            }
-            Event::Input(Key::Char(c)) if c == 'k' => {
-                state.move_up();
-            }
-            Event::Input(Key::Char(c)) if c == 'h' || c == 'l' => {
-                state.switch_focus();
-            }
-            Event::Input(Key::Char(_)) => {
-                break;
-            }
-            _ => {}
-        };
+        if let Event::Key(key) = event::read()? {
+            match key.code {
+                KeyCode::Char(c) if c == 'j' => {
+                    state.move_down();
+                }
+                KeyCode::Char(c) if c == 'k' => {
+                    state.move_up();
+                }
+                KeyCode::Char(c) if c == 'h' || c == 'l' => {
+                    state.switch_focus();
+                }
+                KeyCode::Char(_) => {
+                    break;
+                }
+                _ => {}
+            };
+        }
     }
+
+    disable_raw_mode()?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    terminal.show_cursor()?;
     Ok(())
 }
 
