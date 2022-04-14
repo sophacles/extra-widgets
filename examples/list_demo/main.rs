@@ -11,12 +11,11 @@ use tui::{
     Frame, Terminal,
 };
 
-use widgets::{
-    event::{Config, Event, Events},
-    widgets::{separated_list::ItemDisplay, ListItem, ListState, SeparatedList},
-};
+use widgets::widgets::{separated_list::ItemDisplay, ListItem, ListState, SeparatedList};
 
 mod demos;
+mod event;
+use event::{Config, Event, Events};
 
 static WORDS: &str = include_str!("../wordlist.txt");
 
