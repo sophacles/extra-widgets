@@ -1,0 +1,181 @@
+use std::collections::HashMap;
+
+use tui::{
+    buffer::Buffer,
+    layout::Rect,
+    style::Style,
+    text::{Span, Spans, Text},
+    widgets::{Block, StatefulWidget, Widget},
+};
+
+use time::{Date, Duration, OffsetDateTime, Weekday};
+
+pub struct Calendar<'a, S: DateStyler> {
+    display_date: Date,
+    events: S,
+    show_surrounding: Option<Style>,
+    show_weekday: Option<Style>,
+    show_month: Option<Style>,
+    default_style: Style,
+    block: Option<Block<'a>>,
+}
+
+impl<'a, S: DateStyler> Calendar<'a, S> {
+    pub fn new(display_date: Date, events: S) -> Self {
+        Self {
+            display_date,
+            events,
+            show_surrounding: None,
+            show_weekday: None,
+            show_month: None,
+            default_style: Style::default(),
+            block: None,
+        }
+    }
+
+    pub fn show_surrounding(mut self, style: Style) -> Self {
+        self.show_surrounding = Some(style);
+        self
+    }
+
+    pub fn show_weekdays(mut self, style: Style) -> Self {
+        self.show_weekday = Some(style);
+        self
+    }
+
+    pub fn show_month(mut self, style: Style) -> Self {
+        self.show_month = Some(style);
+        self
+    }
+
+    pub fn default_style(mut self, s: Style) -> Self {
+        self.default_style = s;
+        self
+    }
+
+    pub fn block(mut self, b: Block<'a>) -> Self {
+        self.block = Some(b);
+        self
+    }
+
+    fn default_bg(&self) -> Style {
+        match self.default_style.bg {
+            None => Style::default(),
+            Some(c) => Style::default().bg(c),
+        }
+    }
+
+    /// All logic to style a date goes here.
+    fn format_date(&self, date: Date) -> Span {
+        let style = self.default_style.patch(self.events.get_style(date));
+
+        if date.month() != self.display_date.month() {
+            match self.show_surrounding {
+                None => Span::styled("  ", self.default_bg()),
+                Some(s) => Span::styled(format!("{:2?}", date.day()), style.patch(s)),
+            }
+        } else {
+            Span::styled(format!("{:2?}", date.day()), style)
+        }
+    }
+}
+
+impl<'a, S: DateStyler> Widget for Calendar<'a, S> {
+    fn render(mut self, area: Rect, buf: &mut Buffer) {
+        // Block is used for borders and such
+        // Draw that first, and use the blank area inside the block for our own purposes
+        let mut area = match self.block.take() {
+            None => area,
+            Some(b) => {
+                let inner = b.inner(area);
+                b.render(area, buf);
+                inner
+            }
+        };
+
+        // Draw the month name and year
+        if let Some(style) = self.show_month {
+            let line = Span::styled(
+                format!("{} {}", self.display_date.month(), self.display_date.year()),
+                style,
+            );
+            // cal is 21 cells wide, so hard code the 11
+            let x_off = 11_u16.saturating_sub(line.width() as u16 / 2);
+            buf.set_spans(area.x + x_off, area.y, &line.into(), area.width);
+            area.y += 1
+        }
+
+        // Draw days of week
+        if let Some(style) = self.show_weekday {
+            let days = String::from(" Su Mo Tu We Th Fr Sa");
+            buf.set_string(area.x, area.y, days, style);
+            area.y += 1;
+        }
+
+        // Set the start of the calendar to the Sunday before the 1st (or the sunday of the first)
+        let first_of_month = self.display_date.clone().replace_day(1).unwrap();
+        let offset = Duration::days(first_of_month.weekday().number_days_from_sunday().into());
+        let mut curr_day = first_of_month - offset;
+
+        // go through all the weeks containing a day in the target month.
+        while curr_day.month() as u8 != self.display_date.month().next() as u8 {
+            let mut line = Spans(Vec::with_capacity(14));
+            for i in 0..7 {
+                // Draw the gutter. Do it here so we can avoid worrying about
+                // styling the ' ' in the format_date method
+                if i == 0 {
+                    line.0.push(Span::styled(" ", Style::default()));
+                } else {
+                    line.0.push(Span::styled(" ", self.default_bg()));
+                }
+                line.0.push(self.format_date(curr_day));
+                curr_day += Duration::DAY;
+            }
+            buf.set_spans(area.x, area.y, &line, area.width);
+            area.y += 1;
+        }
+
+        return;
+    }
+}
+
+pub trait DateStyler {
+    fn get_style(&self, date: Date) -> Style;
+}
+
+pub struct CalendarEventStore(pub HashMap<Date, Style>);
+
+impl CalendarEventStore {
+    pub fn today(style: Style) -> Self {
+        let mut res = Self::default();
+        res.add(OffsetDateTime::now_local().unwrap().date(), style);
+        res
+    }
+
+    pub fn add(&mut self, date: Date, style: Style) {
+        // to simplify style nonsense, last write wins
+        let _ = self.0.insert(date, style);
+    }
+
+    fn lookup_style(&self, date: Date) -> Style {
+        self.0.get(&date).copied().unwrap_or_else(Style::default)
+    }
+}
+
+impl DateStyler for CalendarEventStore {
+    fn get_style(&self, date: Date) -> Style {
+        self.lookup_style(date)
+    }
+}
+
+impl DateStyler for &CalendarEventStore {
+    fn get_style(&self, date: Date) -> Style {
+        self.lookup_style(date)
+    }
+}
+
+impl Default for CalendarEventStore {
+    fn default() -> Self {
+        Self(HashMap::with_capacity(4))
+    }
+}
