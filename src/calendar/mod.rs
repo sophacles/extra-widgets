@@ -1,15 +1,27 @@
+//! A simple calendar widget.
+//!
+//! The [Calendar] widget will display a calendar for the monh provided in `display_date`. Days are
+//! styled using the default sytle unless:
+//! * `show_surrounding` is set, then days not in the `display_date` month will use that style.
+//! * a style is returned by the [DateStyler] for the day
+//!
+//! [Calendar] has several controls for what should be displayed
+//!
+//! **Note:** this calendar operates on dates from the [time crate](https://crates.io/crates/time)
+//! In the future this may be changed to [chrono](https://crates.io/crates/chrono)
 use std::collections::HashMap;
 
 use tui::{
     buffer::Buffer,
     layout::Rect,
     style::Style,
-    text::{Span, Spans, Text},
-    widgets::{Block, StatefulWidget, Widget},
+    text::{Span, Spans},
+    widgets::{Block, Widget},
 };
 
-use time::{Date, Duration, OffsetDateTime, Weekday};
+use time::{Date, Duration, OffsetDateTime};
 
+/// Display a month calendar for the month containing `display_date`
 pub struct Calendar<'a, S: DateStyler> {
     display_date: Date,
     events: S,
@@ -21,6 +33,7 @@ pub struct Calendar<'a, S: DateStyler> {
 }
 
 impl<'a, S: DateStyler> Calendar<'a, S> {
+    /// Construct a calendar for the `display_date` and highlight the `events`
     pub fn new(display_date: Date, events: S) -> Self {
         Self {
             display_date,
@@ -33,31 +46,39 @@ impl<'a, S: DateStyler> Calendar<'a, S> {
         }
     }
 
+    /// Fill the calendar slots for days not in the current month also, this causes each line to be
+    /// completely filled. If there is an event style for a date, this style will be patched with
+    /// the event's style
     pub fn show_surrounding(mut self, style: Style) -> Self {
         self.show_surrounding = Some(style);
         self
     }
 
+    /// Display a header containing weekday abbreviations
     pub fn show_weekdays(mut self, style: Style) -> Self {
         self.show_weekday = Some(style);
         self
     }
 
+    /// Display a header containing the month and year
     pub fn show_month(mut self, style: Style) -> Self {
         self.show_month = Some(style);
         self
     }
 
+    /// How to render otherwise unstyled dates
     pub fn default_style(mut self, s: Style) -> Self {
         self.default_style = s;
         self
     }
 
+    /// Render the calendar within a [Block](tui::widgets::Block)
     pub fn block(mut self, b: Block<'a>) -> Self {
         self.block = Some(b);
         self
     }
 
+    /// Return a style with only the backround from the defualt style
     fn default_bg(&self) -> Style {
         match self.default_style.bg {
             None => Style::default(),
@@ -139,24 +160,31 @@ impl<'a, S: DateStyler> Widget for Calendar<'a, S> {
     }
 }
 
+/// Provides a method for styling a given date. [Calendar] is generic on this trait, so any type
+/// that implements this trait can be used.
 pub trait DateStyler {
+    /// Given a date, return a style for that date
     fn get_style(&self, date: Date) -> Style;
 }
 
+/// A simple DateStyler based on a [HashMap]
 pub struct CalendarEventStore(pub HashMap<Date, Style>);
 
 impl CalendarEventStore {
+    /// Construct a store that has the current date styled.
     pub fn today(style: Style) -> Self {
         let mut res = Self::default();
         res.add(OffsetDateTime::now_local().unwrap().date(), style);
         res
     }
 
+    /// Add a date and style to the store
     pub fn add(&mut self, date: Date, style: Style) {
         // to simplify style nonsense, last write wins
         let _ = self.0.insert(date, style);
     }
 
+    /// Helper for trait impls
     fn lookup_style(&self, date: Date) -> Style {
         self.0.get(&date).copied().unwrap_or_else(Style::default)
     }
