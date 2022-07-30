@@ -43,9 +43,9 @@ impl<'a> DisplayLine<'a> {
 /// Control how lines are rendered
 pub enum ItemDisplay {
     /// Basic `ItemDisplay` simply renders each text line in the [`ListItem`] iterator into a
-    /// [`DisplayLine`]
+    /// display line.
     Basic,
-    /// Separated `ItemDisplay` places a [`Separator`] between each [`ListItem`] (including
+    /// Separated `ItemDisplay` places a separator between each [`ListItem`] (including
     /// endcaps so items A, B, C will be rendered as `S A1 A2 S B1 S C1 S`)
     Separated,
 }

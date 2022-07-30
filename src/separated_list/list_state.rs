@@ -22,7 +22,7 @@ impl ListState {
         self.window_first = pos;
     }
 
-    /// Select the next item in the list. If the current item is the last [`ListItem`], it will
+    /// Select the next item in the list. If the current item is the last [`ListItem`](super::ListItem), it will
     /// move the selection to the first [`ListItem`](super::ListItem)
     pub fn cycle_next(&mut self) {
         self.selected = (self.selected + 1) % self.size;

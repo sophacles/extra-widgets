@@ -1,4 +1,4 @@
-use std::{error::Error, io, rc::Rc};
+use std::{error::Error, io};
 
 use crossterm::{
     event::{self, Event, KeyCode},
@@ -8,10 +8,8 @@ use crossterm::{
 
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
-    widgets::{Block, BorderType, Borders, Paragraph},
     Frame, Terminal,
 };
 
@@ -30,6 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let _ = terminal.draw(|f| draw(f));
 
         if let Event::Key(key) = event::read()? {
+            #[allow(clippy::single_match)]
             match key.code {
                 KeyCode::Char(_) => {
                     break;
@@ -65,11 +64,7 @@ fn draw<B: Backend>(f: &mut Frame<B>) {
 
     let list = make_list();
 
-    for chunk in split_rows(calarea)
-        .into_iter()
-        .map(|row| split_cols(row))
-        .flatten()
-    {
+    for chunk in split_rows(calarea).into_iter().flat_map(split_cols) {
         let cal = cals::get_cal(start.month(), start.year(), &list);
         f.render_widget(cal, chunk);
         start = start.replace_month(start.month().next()).unwrap();
@@ -146,7 +141,7 @@ mod cals {
             .default_style(default_style)
     }
 
-    fn july<'a, S: DateStyler>(m: Month, y: i32, es: S) -> Calendar<'a, S> {
+    fn july<'a, S: DateStyler>(_m: Month, _y: i32, es: S) -> Calendar<'a, S> {
         let header_style = Style::default()
             .add_modifier(Modifier::BOLD)
             .fg(Color::Green);

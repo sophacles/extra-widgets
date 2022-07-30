@@ -134,7 +134,7 @@ impl<'a, S: DateStyler> Widget for Calendar<'a, S> {
         }
 
         // Set the start of the calendar to the Sunday before the 1st (or the sunday of the first)
-        let first_of_month = self.display_date.clone().replace_day(1).unwrap();
+        let first_of_month = self.display_date.replace_day(1).unwrap();
         let offset = Duration::days(first_of_month.weekday().number_days_from_sunday().into());
         let mut curr_day = first_of_month - offset;
 
@@ -155,8 +155,6 @@ impl<'a, S: DateStyler> Widget for Calendar<'a, S> {
             buf.set_spans(area.x, area.y, &line, area.width);
             area.y += 1;
         }
-
-        return;
     }
 }
 
@@ -186,7 +184,7 @@ impl CalendarEventStore {
 
     /// Helper for trait impls
     fn lookup_style(&self, date: Date) -> Style {
-        self.0.get(&date).copied().unwrap_or_else(Style::default)
+        self.0.get(&date).copied().unwrap_or_default()
     }
 }
 

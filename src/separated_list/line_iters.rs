@@ -48,7 +48,7 @@ where
 {
     pub(super) fn new(items: I) -> Self {
         let mut items = items.into_iter();
-        let current = items.next().map(|it| it.into());
+        let current = items.next();
         Self { items, current }
     }
 }
