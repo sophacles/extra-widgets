@@ -4,23 +4,19 @@ use tui::{style::Style, text::Spans};
 
 use super::{DisplayLine, ListItem, Separator};
 
-pub enum ItemDisplay {
-    Basic,
-    Separated,
-}
-
-struct ToLines<'a> {
+/// A struct for iterating through display lines given an item and a selection state
+pub(super) struct ToLines<'a> {
     style: Style,
     text_items: VecDeque<Spans<'a>>,
     selected: bool,
 }
 
-impl<'a> From<ListItem<'a>> for ToLines<'a> {
-    fn from(item: ListItem<'a>) -> Self {
+impl<'a> ToLines<'a> {
+    pub(super) fn new(item: ListItem<'a>, selected: bool) -> Self {
         Self {
             style: item.style,
             text_items: VecDeque::from(item.content.lines),
-            selected: item.selected,
+            selected,
         }
     }
 }
@@ -37,9 +33,10 @@ impl<'a> Iterator for ToLines<'a> {
     }
 }
 
+/// Basic line iterator, will render each display line it encounters
 pub(super) struct Basic<'a, I>
 where
-    I: IntoIterator<Item = ListItem<'a>>,
+    I: IntoIterator<Item = ToLines<'a>>,
 {
     items: I::IntoIter,
     current: Option<ToLines<'a>>,
@@ -47,7 +44,7 @@ where
 
 impl<'a, I> Basic<'a, I>
 where
-    I: IntoIterator<Item = ListItem<'a>>,
+    I: IntoIterator<Item = ToLines<'a>>,
 {
     pub(super) fn new(items: I) -> Self {
         let mut items = items.into_iter();
@@ -58,7 +55,7 @@ where
 
 impl<'a, I> Iterator for Basic<'a, I>
 where
-    I: IntoIterator<Item = ListItem<'a>>,
+    I: IntoIterator<Item = ToLines<'a>>,
 {
     type Item = DisplayLine<'a>;
     fn next(&mut self) -> Option<Self::Item> {
@@ -66,7 +63,7 @@ where
         match lines.next() {
             Some(l) => Some(l),
             None => {
-                let mut new_lines: ToLines = self.items.next()?.into();
+                let mut new_lines: ToLines = self.items.next()?;
                 let res = new_lines.next();
                 self.current = Some(new_lines);
                 res
@@ -75,9 +72,11 @@ where
     }
 }
 
+/// Separated line iterator - will place a Separator between each ListItem as it renders
+/// DisplayLines
 pub(super) struct Separated<'a, I>
 where
-    I: IntoIterator<Item = ListItem<'a>>,
+    I: IntoIterator<Item = ToLines<'a>>,
 {
     items: std::iter::Peekable<I::IntoIter>,
     current: Option<ToLines<'a>>,
@@ -87,7 +86,7 @@ where
 
 impl<'a, I> Separated<'a, I>
 where
-    I: IntoIterator<Item = ListItem<'a>>,
+    I: IntoIterator<Item = ToLines<'a>>,
 {
     pub(super) fn new(items: I, separator: Separator) -> Self {
         let mut items = items.into_iter().peekable();
@@ -112,7 +111,7 @@ where
 
 impl<'a, I> Iterator for Separated<'a, I>
 where
-    I: IntoIterator<Item = ListItem<'a>>,
+    I: IntoIterator<Item = ToLines<'a>>,
 {
     type Item = DisplayLine<'a>;
     fn next(&mut self) -> Option<Self::Item> {
@@ -124,7 +123,7 @@ where
                 Some(next) => {
                     let next_selected = next.selected;
                     self.separator.cycle_color(next.style.bg);
-                    self.current = Some(next.into());
+                    self.current = Some(next);
                     self.separator
                         .display_line(next_selected || self.last_line_selected)
                 }
@@ -152,7 +151,7 @@ mod test {
         let style = Style::default().fg(Color::Red).bg(Color::Blue);
         let it = ListItem::new("a\nb\nc").style(style);
 
-        for (dl, s) in ToLines::from(it).zip(["a", "b", "c"]) {
+        for (dl, s) in ToLines::new(it, false).zip(["a", "b", "c"]) {
             assert_eq!(dl.line, Spans::from(s));
             assert_eq!(dl.style, style);
         }
@@ -161,17 +160,18 @@ mod test {
     #[test]
     fn to_lines_selected() {
         let mut item = ListItem::new("a\nb");
-        item.selected = true;
 
-        for i in ToLines::from(item) {
+        for i in ToLines::new(item, true) {
             assert!(i.must_display)
         }
     }
 
     #[test]
     fn basic_display_lines() {
-        let mut items = vec![ListItem::new("a\nb\nc"), ListItem::new("d\ne")];
-        items[1].selected = true;
+        let mut items = vec![
+            ToLines::new(ListItem::new("a\nb\nc"), false),
+            ToLines::new(ListItem::new("d\ne"), true),
+        ];
         for (dl, (t, s)) in Basic::new(items).zip([
             ("a", false),
             ("b", false),
@@ -188,10 +188,9 @@ mod test {
     fn separated_display_lines_end_selected() {
         let sstyle = Style::default().bg(Color::Red).fg(Color::Blue);
         let mut items = vec![
-            ListItem::new("a\nb\nc"),
-            ListItem::new("d\ne").style(sstyle),
+            ToLines::new(ListItem::new("a\nb\nc"), false),
+            ToLines::new(ListItem::new("d\ne").style(sstyle), true),
         ];
-        items[1].selected = true;
         for (dl, (t, s, bg, fg)) in
             Separated::new(items, Separator::new(1, Style::default())).zip([
                 (HALF, false, None, None),
@@ -215,8 +214,8 @@ mod test {
     fn separated_display_lines_begin_selected() {
         let sstyle = Style::default().bg(Color::Red).fg(Color::Blue);
         let mut items = vec![
-            ListItem::new("a\nb\nc").style(sstyle),
-            ListItem::new("d\ne"),
+            ToLines::new(ListItem::new("a\nb\nc").style(sstyle), true),
+            ToLines::new(ListItem::new("d\ne"), false),
         ];
         items[0].selected = true;
         for (dl, (t, s, bg, fg)) in
@@ -242,11 +241,10 @@ mod test {
     fn separated_display_lines_middle_selected() {
         let sstyle = Style::default().bg(Color::Red).fg(Color::Blue);
         let mut items = vec![
-            ListItem::new("a\nb\nc"),
-            ListItem::new("d\ne").style(sstyle),
-            ListItem::new("f\ng"),
+            ToLines::new(ListItem::new("a\nb\nc"), false),
+            ToLines::new(ListItem::new("d\ne").style(sstyle), true),
+            ToLines::new(ListItem::new("f\ng"), false),
         ];
-        items[1].selected = true;
         for (dl, (t, s, bg, fg)) in
             Separated::new(items, Separator::new(1, Style::default())).zip([
                 (HALF, false, None, None),
@@ -275,9 +273,9 @@ mod test {
         let sstyle = Style::default().bg(Color::Red).fg(Color::Blue);
         let lstyle = Style::default().bg(Color::Green);
         let mut items = vec![
-            ListItem::new("a\nb\nc").style(fstyle),
-            ListItem::new("d\ne").style(sstyle),
-            ListItem::new("f\ng").style(lstyle),
+            ToLines::new(ListItem::new("a\nb\nc").style(fstyle), false),
+            ToLines::new(ListItem::new("d\ne").style(sstyle), true),
+            ToLines::new(ListItem::new("f\ng").style(lstyle), false),
         ];
         items[1].selected = true;
         for (dl, (t, s, bg, fg)) in

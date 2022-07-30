@@ -1,11 +1,14 @@
 use tui::{style::Style, text::Text};
 
+/// An entry in a list. This is a direct copy of the [`tui::widgets::ListItem`].
+///
+/// It is remimplemented here because the provided list item keeps its members private,
+/// and those values are needed in drawing the list. If tui-rs increased the visibility
+/// scope for its `ListItem` this can be replaced.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ListItem<'a> {
     pub(super) content: Text<'a>,
     pub(super) style: Style,
-    pub(super) line_pos: usize,
-    pub(super) selected: bool,
 }
 
 impl<'a> ListItem<'a> {
@@ -16,8 +19,6 @@ impl<'a> ListItem<'a> {
         ListItem {
             content: content.into(),
             style: Style::default(),
-            line_pos: 0,
-            selected: false,
         }
     }
 

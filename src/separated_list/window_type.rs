@@ -4,29 +4,7 @@ use bounded_vec_deque::BoundedVecDeque;
 
 use super::{DisplayLine, ListState};
 
-pub enum WindowType {
-    SelectionScroll,
-    Fixed,
-}
-
-impl WindowType {
-    pub(super) fn get_display_lines<'a, I>(
-        &self,
-        items: I,
-        window_size: usize,
-        list_state: &mut ListState,
-    ) -> impl Iterator<Item = DisplayLine<'a>>
-    where
-        I: Iterator<Item = DisplayLine<'a>>,
-    {
-        use WindowType::*;
-        match self {
-            SelectionScroll => selection_scroll(items, window_size, list_state),
-            Fixed => fixed(items, window_size, list_state),
-        }
-    }
-}
-
+/// A small state machine to track the display of selected items.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SelState {
     NotSeen,
@@ -51,6 +29,7 @@ impl Default for SelState {
     }
 }
 
+/// Tracking for the display window.
 struct Window {
     goal_index: usize,
     curr_index: usize,
@@ -104,6 +83,7 @@ impl Display for Window {
     }
 }
 
+/// Line selector for [`WindowType::SelectionScroll`](super::WindowType::SelectionScroll).
 pub(super) fn selection_scroll<'a, I>(
     items: I,
     window_size: usize,
@@ -167,6 +147,7 @@ where
     buffer.into_iter()
 }
 
+/// line selector for [`WindowType::Fixed`](super::WindowType::Fixed).
 pub(super) fn fixed<'a, I>(
     items: I,
     window_size: usize,

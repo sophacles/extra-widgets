@@ -1,3 +1,7 @@
+//! A list widget with many display styling options.
+//!
+//! This list models its display on by rendering all the [`ListItem`] elements of `items` into
+//! indivdual lines of text, and then moving a window over the lines to acheive the final view.
 mod line_iters;
 mod list_item;
 mod list_state;
@@ -12,12 +16,12 @@ use tui::{
     widgets::{Block, StatefulWidget, Widget},
 };
 
-pub use line_iters::ItemDisplay;
 pub use list_item::ListItem;
 pub use list_state::ListState;
-pub use separator::Separator;
-pub use window_type::WindowType;
+use separator::Separator;
 
+/// A rendered line of text in the list widget. Multiple DisplayLines can be created from a single
+/// [`ListItem`]. The window operates on an iterable of [`DiplayLine`]s
 #[derive(Clone, Debug)]
 struct DisplayLine<'a> {
     pub(super) style: Style,
@@ -26,7 +30,8 @@ struct DisplayLine<'a> {
 }
 
 impl<'a> DisplayLine<'a> {
-    pub fn filler(x: &'static str) -> Self {
+    /// Construct an empty DisplayLine (e.g as a placeholder)
+    fn filler(x: &'static str) -> Self {
         Self {
             style: Style::default(),
             line: Spans::from(x),
@@ -35,6 +40,50 @@ impl<'a> DisplayLine<'a> {
     }
 }
 
+/// Control how lines are rendered
+pub enum ItemDisplay {
+    /// Basic `ItemDisplay` simply renders each text line in the [`ListItem`] iterator into a
+    /// [`DisplayLine`]
+    Basic,
+    /// Separated `ItemDisplay` places a [`Separator`] between each [`ListItem`] (including
+    /// endcaps so items A, B, C will be rendered as `S A1 A2 S B1 S C1 S`)
+    Separated,
+}
+
+/// Control how the window places itself with respect to the rendered lines, i.e. control the list
+/// display of rendered lines.
+pub enum WindowType {
+    /// Diplay rendered lines so that the first selected [`ListItem`] is always visible. The location of
+    /// the selected items within the display window is dependent on movement. This operates the
+    /// way one naturally expects from a list widget - and "moves" the selection first, then the
+    /// displayed lines if the selection otherwise wouldn't be displayed.
+    SelectionScroll,
+    /// Display the rendered lines so that the selected [`ListItem`] always displays in the same
+    /// place on the screen. Effectively this always "moves the list" around the selection.
+    Fixed,
+}
+
+impl WindowType {
+    /// Iterate through the rendered display lines and produce the ones that should be shown in the
+    /// window.
+    fn get_display_lines<'a, I>(
+        &self,
+        items: I,
+        window_size: usize,
+        list_state: &mut ListState,
+    ) -> impl Iterator<Item = DisplayLine<'a>>
+    where
+        I: Iterator<Item = DisplayLine<'a>>,
+    {
+        use WindowType::*;
+        match self {
+            SelectionScroll => window_type::selection_scroll(items, window_size, list_state),
+            Fixed => window_type::fixed(items, window_size, list_state),
+        }
+    }
+}
+
+/// A general purpose List widget that has several modes of display
 pub struct SeparatedList<'a> {
     block: Option<Block<'a>>,
     default_style: Style,
@@ -45,42 +94,39 @@ pub struct SeparatedList<'a> {
 }
 
 impl<'a> SeparatedList<'a> {
-    pub fn new() -> Self {
-        SeparatedList {
-            items: vec![],
-            block: None,
-            default_style: Style::default(),
-            selected_style: Style::default(),
-            window_type: WindowType::SelectionScroll,
-            item_display: ItemDisplay::Basic,
-        }
-    }
-
+    /// Wrap the list in a block (e.g. to set borders or a title).
     pub fn block(mut self, b: Block<'a>) -> Self {
         self.block = Some(b);
         self
     }
 
+    /// The style that will be used for [`ListItem`]s that are not selected. If an item includes a
+    /// style, that style will be patched into the default style.
     pub fn default_style(mut self, s: Style) -> Self {
         self.default_style = s;
         self
     }
 
+    /// The style applied to lines of the selected item. If the this list uses [`ItemDisplay::Separated`]
+    /// the surrounding separators will also be highlighted using this style.
     pub fn selected_style(mut self, s: Style) -> Self {
         self.selected_style = s;
         self
     }
 
+    /// Set the [`ListItem`]s to be used for this list
     pub fn items(mut self, items: Vec<ListItem<'a>>) -> Self {
         self.items = items;
         self
     }
 
+    /// Set the window type for this list
     pub fn window_type(mut self, wt: WindowType) -> Self {
         self.window_type = wt;
         self
     }
 
+    /// Set the item display control
     pub fn item_display(mut self, it: ItemDisplay) -> Self {
         self.item_display = it;
         self
@@ -109,13 +155,14 @@ impl<'a> StatefulWidget for SeparatedList<'a> {
 
         let selected = state.selected;
         let iter = self.items.into_iter().enumerate().map(|(i, mut it)| {
-            if i == selected {
-                it.selected = true;
-                it.style = self.selected_style;
+            // TODO: item style patches default style, not "is repalced by"
+            it.style = if i == selected {
+                self.selected_style
             } else {
-                it.style = self.default_style;
-            }
-            it
+                self.default_style
+            };
+
+            line_iters::ToLines::new(it, i == selected)
         });
 
         let item_display: Box<dyn Iterator<Item = DisplayLine<'a>>> = match self.item_display {
@@ -149,6 +196,13 @@ impl<'a> Widget for SeparatedList<'a> {
 
 impl<'a> Default for SeparatedList<'a> {
     fn default() -> Self {
-        Self::new()
+        SeparatedList {
+            items: vec![],
+            block: None,
+            default_style: Style::default(),
+            selected_style: Style::default(),
+            window_type: WindowType::SelectionScroll,
+            item_display: ItemDisplay::Basic,
+        }
     }
 }
