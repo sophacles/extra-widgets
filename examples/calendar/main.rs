@@ -15,7 +15,7 @@ use tui::{
 
 use time::{macros::date, Date, Month, OffsetDateTime};
 
-use widgets::calendar::{Calendar, CalendarEventStore, DateStyler};
+use extra_widgets::calendar::{Calendar, CalendarEventStore, DateStyler};
 
 fn main() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
