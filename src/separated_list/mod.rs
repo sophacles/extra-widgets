@@ -84,16 +84,32 @@ impl WindowType {
 }
 
 /// A general purpose List widget that has several modes of display
-pub struct SeparatedList<'a> {
+pub struct SeparatedList<'a, I>
+where
+    I: IntoIterator<Item = ListItem<'a>>,
+{
     block: Option<Block<'a>>,
     default_style: Style,
     selected_style: Style,
     window_type: WindowType,
     item_display: ItemDisplay,
-    items: Vec<ListItem<'a>>,
+    items: I,
 }
 
-impl<'a> SeparatedList<'a> {
+impl<'a, I> SeparatedList<'a, I>
+where
+    I: IntoIterator<Item = ListItem<'a>>,
+{
+    pub fn new(items: I) -> Self {
+        Self {
+            items,
+            block: None,
+            default_style: Style::default(),
+            selected_style: Style::default(),
+            window_type: WindowType::SelectionScroll,
+            item_display: ItemDisplay::Basic,
+        }
+    }
     /// Wrap the list in a block (e.g. to set borders or a title).
     pub fn block(mut self, b: Block<'a>) -> Self {
         self.block = Some(b);
@@ -114,12 +130,6 @@ impl<'a> SeparatedList<'a> {
         self
     }
 
-    /// Set the [`ListItem`]s to be used for this list
-    pub fn items(mut self, items: Vec<ListItem<'a>>) -> Self {
-        self.items = items;
-        self
-    }
-
     /// Set the window type for this list
     pub fn window_type(mut self, wt: WindowType) -> Self {
         self.window_type = wt;
@@ -133,7 +143,10 @@ impl<'a> SeparatedList<'a> {
     }
 }
 
-impl<'a> StatefulWidget for SeparatedList<'a> {
+impl<'a, I> StatefulWidget for SeparatedList<'a, I>
+where
+    I: IntoIterator<Item = ListItem<'a>>,
+{
     type State = ListState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
@@ -186,22 +199,12 @@ impl<'a> StatefulWidget for SeparatedList<'a> {
     }
 }
 
-impl<'a> Widget for SeparatedList<'a> {
+impl<'a, I> Widget for SeparatedList<'a, I>
+where
+    I: Iterator<Item = ListItem<'a>>,
+{
     fn render(self, area: Rect, buf: &mut Buffer) {
         let mut state = ListState::default();
         StatefulWidget::render(self, area, buf, &mut state);
-    }
-}
-
-impl<'a> Default for SeparatedList<'a> {
-    fn default() -> Self {
-        SeparatedList {
-            items: vec![],
-            block: None,
-            default_style: Style::default(),
-            selected_style: Style::default(),
-            window_type: WindowType::SelectionScroll,
-            item_display: ItemDisplay::Basic,
-        }
     }
 }

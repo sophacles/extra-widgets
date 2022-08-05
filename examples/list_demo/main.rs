@@ -219,11 +219,10 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
         .border_type(BorderType::Thick)
         .style(bstyle);
 
-    let select_list = SeparatedList::default()
+    let select_list = SeparatedList::new(selections)
         .block(select_bounds)
         .default_style(Style::reset().bg(Color::Black).fg(Color::White))
         .selected_style(Style::default().bg(Color::Blue).fg(Color::White))
-        .items(selections)
         .item_display(ItemDisplay::Separated);
     let _ = f.render_stateful_widget(select_list, select_list_area, &mut state.picker);
 
