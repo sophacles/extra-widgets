@@ -155,11 +155,10 @@ impl<'a> StatefulWidget for SeparatedList<'a> {
 
         let selected = state.selected;
         let iter = self.items.into_iter().enumerate().map(|(i, mut it)| {
-            // TODO: item style patches default style, not "is repalced by"
             it.style = if i == selected {
                 self.selected_style
             } else {
-                self.default_style
+                self.default_style.patch(it.style)
             };
 
             line_iters::ToLines::new(it, i == selected)

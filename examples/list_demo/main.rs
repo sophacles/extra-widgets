@@ -182,8 +182,9 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
         ListItem::new("basic"), // 0
         ListItem::new("separated"),
         ListItem::new("fixed"),
+        ListItem::new("styled items"),
     ];
-    let _ = state.picker.resize(3);
+    let _ = state.picker.resize(4);
 
     let demo_list_area = demo_list_area.inner(&Margin {
         vertical: 2,
@@ -202,6 +203,10 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
         2 => {
             demos::fixed(demo_list_area, state, f);
             include_str!("demos/fixed.rs")
+        }
+        3 => {
+            demos::styled_items(demo_list_area, state, f);
+            include_str!("demos/styled_items.rs")
         }
         _ => unreachable!(),
     };
