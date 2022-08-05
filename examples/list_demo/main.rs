@@ -165,14 +165,14 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
             .as_ref(),
         );
     let chunks = list_layout.split(main_area);
-    let select_list_area = chunks[0];
-    let demo_frame_area = chunks[1];
-    let code_area = chunks[2];
 
-    //println!("{:?}", chunks);
+    let (select_list_area, demo_frame_area, code_area) = (chunks[0], chunks[1], chunks[2]);
+
     let demo_frame = Block::default()
-        .borders(Borders::TOP)
-        .style(Style::default().fg(Color::White).bg(Color::DarkGray))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Thick)
+        .border_style(Style::default().fg(Color::DarkGray))
+        .style(Style::default())
         .title("demo")
         .title_alignment(Alignment::Center);
 
@@ -183,7 +183,7 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
         ListItem::new("separated"),
         ListItem::new("fixed"),
     ];
-    state.picker.resize(3);
+    let _ = state.picker.resize(3);
 
     let demo_list_area = demo_list_area.inner(&Margin {
         vertical: 2,
@@ -209,6 +209,7 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
     let bstyle = Style::default().fg(Color::White);
     let select_bounds = Block::default()
         .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::DarkGray))
         .title("select demo")
         .border_type(BorderType::Thick)
         .style(bstyle);
@@ -219,10 +220,11 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
         .selected_style(Style::default().bg(Color::Blue).fg(Color::White))
         .items(selections)
         .item_display(ItemDisplay::Separated);
-    f.render_stateful_widget(select_list, select_list_area, &mut state.picker);
+    let _ = f.render_stateful_widget(select_list, select_list_area, &mut state.picker);
 
     let code_block = Block::default()
         .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::DarkGray))
         .title("code")
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain)
