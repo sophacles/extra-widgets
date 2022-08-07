@@ -231,9 +231,9 @@ mod test {
         assert_eq!(res[1].line.0[0].content, "b");
         assert_eq!(res[2].line.0[0].content, "c");
 
-        assert_eq!(res[0].must_display, false);
-        assert_eq!(res[1].must_display, true);
-        assert_eq!(res[2].must_display, false);
+        assert!(!res[0].must_display);
+        assert!(res[1].must_display);
+        assert!(!res[2].must_display);
     }
 
     #[test]
@@ -248,9 +248,9 @@ mod test {
         assert_eq!(res[1].line.0[0].content, "b");
         assert_eq!(res[2].line.0[0].content, "c");
 
-        assert_eq!(res[0].must_display, false);
-        assert_eq!(res[1].must_display, false);
-        assert_eq!(res[2].must_display, true);
+        assert!(!res[0].must_display);
+        assert!(!res[1].must_display);
+        assert!(res[2].must_display);
     }
 
     #[test]
@@ -265,9 +265,9 @@ mod test {
         assert_eq!(res[1].line.0[0].content, "d");
         assert_eq!(res[2].line.0[0].content, "e");
 
-        assert_eq!(res[0].must_display, false);
-        assert_eq!(res[1].must_display, true);
-        assert_eq!(res[2].must_display, true);
+        assert!(!res[0].must_display);
+        assert!(res[1].must_display);
+        assert!(res[2].must_display);
     }
 
     #[test]
@@ -282,9 +282,9 @@ mod test {
         assert_eq!(res[1].line.0[0].content, "e");
         assert_eq!(res[2].line.0[0].content, "f");
 
-        assert_eq!(res[0].must_display, true);
-        assert_eq!(res[1].must_display, true);
-        assert_eq!(res[2].must_display, false);
+        assert!(res[0].must_display);
+        assert!(res[1].must_display);
+        assert!(!res[2].must_display);
     }
 
     #[test]
@@ -299,9 +299,9 @@ mod test {
         assert_eq!(res[1].line.0[0].content, "e");
         assert_eq!(res[2].line.0[0].content, "f");
 
-        assert_eq!(res[0].must_display, true);
-        assert_eq!(res[1].must_display, true);
-        assert_eq!(res[2].must_display, true);
+        assert!(res[0].must_display);
+        assert!(res[1].must_display);
+        assert!(res[2].must_display);
     }
 
     #[test]
@@ -316,8 +316,8 @@ mod test {
         assert_eq!(res[1].line.0[0].content, "e");
         assert_eq!(res[2].line.0[0].content, "f");
 
-        assert_eq!(res[0].must_display, true);
-        assert_eq!(res[1].must_display, true);
-        assert_eq!(res[2].must_display, true);
+        assert!(res[0].must_display);
+        assert!(res[1].must_display);
+        assert!(res[2].must_display);
     }
 }

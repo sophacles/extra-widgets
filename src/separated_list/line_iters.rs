@@ -176,7 +176,7 @@ mod test {
 
     #[test]
     fn to_lines_selected() {
-        let mut item = ListItem::new("a\nb");
+        let item = ListItem::new("a\nb");
 
         for i in ToLines::new(item, true) {
             assert!(i.must_display)
@@ -185,7 +185,7 @@ mod test {
 
     #[test]
     fn basic_display_lines() {
-        let mut items = vec![
+        let items = vec![
             ToLines::new(ListItem::new("a\nb\nc"), false),
             ToLines::new(ListItem::new("d\ne"), true),
         ];
@@ -204,7 +204,7 @@ mod test {
     #[test]
     fn separated_display_lines_end_selected() {
         let sstyle = Style::default().bg(Color::Red).fg(Color::Blue);
-        let mut items = vec![
+        let items = vec![
             ToLines::new(ListItem::new("a\nb\nc"), false),
             ToLines::new(ListItem::new("d\ne").style(sstyle), true),
         ];
@@ -257,7 +257,7 @@ mod test {
     #[test]
     fn separated_display_lines_middle_selected() {
         let sstyle = Style::default().bg(Color::Red).fg(Color::Blue);
-        let mut items = vec![
+        let items = vec![
             ToLines::new(ListItem::new("a\nb\nc"), false),
             ToLines::new(ListItem::new("d\ne").style(sstyle), true),
             ToLines::new(ListItem::new("f\ng"), false),
