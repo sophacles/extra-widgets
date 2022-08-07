@@ -1,11 +1,11 @@
 use tui::{
     backend::Backend,
     layout::Rect,
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     Frame,
 };
 
-use extra_widgets::separated_list::{ItemDisplay, SeparatedList};
+use extra_widgets::separated_list::{Indicator, ItemDisplay, LineIndicators, SeparatedList};
 
 use super::super::{words, AppState};
 
@@ -20,7 +20,14 @@ pub fn styled_items<B: Backend>(area: Rect, state: &mut AppState, f: &mut Frame<
 
     let demo_list = SeparatedList::new(demo_items)
         .default_style(Style::reset().bg(Color::Black).fg(Color::White))
-        .selected_style(Style::default().bg(Color::Blue).fg(Color::White))
+        .selected_style(Style::default().add_modifier(Modifier::BOLD))
+        .selected_indicator(
+            LineIndicators::default()
+                .set_right(Indicator::Char("|"))
+                .set_left(Indicator::Char("|")),
+        )
+        .show_left_indicator()
+        .show_right_indicator()
         .item_display(ItemDisplay::Separated);
     f.render_stateful_widget(demo_list, area, &mut state.examples);
 }

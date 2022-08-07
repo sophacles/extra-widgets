@@ -2,21 +2,40 @@ use std::collections::VecDeque;
 
 use tui::{style::Style, text::Spans};
 
-use super::{DisplayLine, ListItem, Separator};
+use super::{DisplayLine, LineIndicators, ListItem, Separator};
 
 /// A struct for iterating through display lines given an item and a selection state
 pub(super) struct ToLines<'a> {
     style: Style,
-    text_items: VecDeque<Spans<'a>>,
+    text_items: VecDeque<(usize, usize, Spans<'a>)>,
+    indicators: LineIndicators,
     selected: bool,
 }
 
 impl<'a> ToLines<'a> {
     pub(super) fn new(item: ListItem<'a>, selected: bool) -> Self {
+        let line_count = item.height();
+        let text_items = VecDeque::from_iter(
+            item.content
+                .lines
+                .into_iter()
+                .enumerate()
+                .map(|(i, line)| (i, line_count, line)),
+        );
         Self {
             style: item.style,
-            text_items: VecDeque::from(item.content.lines),
+            text_items,
+            indicators: item.indicators,
             selected,
+        }
+    }
+
+    pub(super) fn empty_with_selection(selected: bool) -> Self {
+        Self {
+            style: Style::default(),
+            text_items: VecDeque::new(),
+            selected,
+            indicators: LineIndicators::default(),
         }
     }
 }
@@ -24,10 +43,13 @@ impl<'a> ToLines<'a> {
 impl<'a> Iterator for ToLines<'a> {
     type Item = DisplayLine<'a>;
     fn next(&mut self) -> Option<Self::Item> {
+        let (i, line_count, line) = self.text_items.pop_front()?;
         let res = DisplayLine {
             style: self.style,
-            line: self.text_items.pop_front()?,
+            line,
             must_display: self.selected,
+            left_indicator: self.indicators.left.fill_char(i, line_count).into(),
+            right_indicator: self.indicators.right.fill_char(i, line_count).into(),
         };
         Some(res)
     }
@@ -92,14 +114,9 @@ where
         let mut items = items.into_iter().peekable();
         // kick start the iterator to just handle the "current ended, must add separator"
         // case immediately so we start with a separator.
-        let current = items.peek().map(|next| {
-            //separator.cycle_color(next.style.bg);
-            ToLines {
-                style: Style::default(),
-                text_items: VecDeque::new(),
-                selected: next.selected,
-            }
-        });
+        let current = items
+            .peek()
+            .map(|next| ToLines::empty_with_selection(next.selected));
         Self {
             items,
             current,

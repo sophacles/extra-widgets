@@ -213,6 +213,8 @@ mod test {
                 style: Style::default(),
                 line: Spans::from(s),
                 must_display,
+                left_indicator: " ".into(),
+                right_indicator: " ".into(),
             }
         })
     }

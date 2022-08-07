@@ -16,7 +16,7 @@ use tui::{
     widgets::{Block, StatefulWidget, Widget},
 };
 
-pub use list_item::ListItem;
+pub use list_item::{Indicator, LineIndicators, ListItem};
 pub use list_state::ListState;
 use separator::Separator;
 
@@ -27,6 +27,8 @@ struct DisplayLine<'a> {
     pub(super) style: Style,
     pub(super) line: Spans<'a>,
     pub(super) must_display: bool,
+    pub(super) left_indicator: Spans<'a>,
+    pub(super) right_indicator: Spans<'a>,
 }
 
 impl<'a> DisplayLine<'a> {
@@ -36,6 +38,8 @@ impl<'a> DisplayLine<'a> {
             style: Style::default(),
             line: Spans::from(x),
             must_display: false,
+            left_indicator: Spans::from(x),
+            right_indicator: Spans::from(x),
         }
     }
 }
@@ -91,6 +95,9 @@ where
     block: Option<Block<'a>>,
     default_style: Style,
     selected_style: Style,
+    selected_indicator: LineIndicators,
+    show_left_indicator: bool,
+    show_right_indicator: bool,
     window_type: WindowType,
     item_display: ItemDisplay,
     items: I,
@@ -106,6 +113,9 @@ where
             block: None,
             default_style: Style::default(),
             selected_style: Style::default(),
+            selected_indicator: LineIndicators::default(),
+            show_left_indicator: false,
+            show_right_indicator: false,
             window_type: WindowType::SelectionScroll,
             item_display: ItemDisplay::Basic,
         }
@@ -127,6 +137,24 @@ where
     /// the surrounding separators will also be highlighted using this style.
     pub fn selected_style(mut self, s: Style) -> Self {
         self.selected_style = s;
+        self
+    }
+
+    /// The indicators to use for the selected item
+    pub fn selected_indicator(mut self, indicator: LineIndicators) -> Self {
+        self.selected_indicator = indicator;
+        self
+    }
+
+    /// Display the left indicator column - if not set the left indicator will not be displayed
+    pub fn show_left_indicator(mut self) -> Self {
+        self.show_left_indicator = true;
+        self
+    }
+
+    /// Display the right indicator column - if not set the right indicator will not be displayed
+    pub fn show_right_indicator(mut self) -> Self {
+        self.show_right_indicator = true;
         self
     }
 
@@ -168,11 +196,14 @@ where
 
         let selected = state.selected;
         let iter = self.items.into_iter().enumerate().map(|(i, mut it)| {
-            it.style = if i == selected {
-                self.selected_style
+            if i == selected {
+                it = it.indicators(self.selected_indicator);
+                it.style = self
+                    .default_style
+                    .patch(it.style.patch(self.selected_style));
             } else {
-                self.default_style.patch(it.style)
-            };
+                it.style = self.default_style.patch(it.style);
+            }
 
             line_iters::ToLines::new(it, i == selected)
         });
@@ -187,14 +218,34 @@ where
             .get_display_lines(item_display, area.height as usize, state);
 
         for (i, l) in lines.into_iter().enumerate() {
+            let y = area.y + i as u16;
+            // first fill the whole line area
             let d_area = Rect {
                 x: area.x,
-                y: area.y + i as u16,
+                y,
                 height: 1,
                 width: area.width,
             };
             buf.set_style(d_area, l.style);
-            buf.set_spans(area.x, area.y + i as u16, &l.line, area.width);
+
+            let mut x = area.x;
+            let mut line_width = area.width;
+
+            // show the left indicator and adjust the display area for the item text
+            if self.show_left_indicator {
+                buf.set_spans(x, y, &l.left_indicator, 1);
+                x += 1;
+                line_width -= 1;
+            }
+
+            // show the right indicator and adjust the display area for the item text
+            if self.show_right_indicator {
+                buf.set_spans(x + line_width - 1, y, &l.right_indicator, 1);
+                line_width -= 1;
+            }
+
+            // show the item text
+            buf.set_spans(x, y, &l.line, line_width);
         }
     }
 }

@@ -5,6 +5,7 @@ use tui::{
 
 use super::DisplayLine;
 
+/// A separator line for separated list
 #[derive(Clone, Copy)]
 pub struct Separator {
     width: usize,
@@ -39,10 +40,13 @@ impl<'a> Separator {
 
     pub(super) fn display_line(&self, must_display: bool) -> DisplayLine<'a> {
         let line = HALF.repeat(self.width);
+        let left_indicator = HALF;
         DisplayLine {
             style: self.curr_style,
             line: line.into(),
             must_display,
+            left_indicator: left_indicator.into(),
+            right_indicator: left_indicator.into(),
         }
     }
 }
