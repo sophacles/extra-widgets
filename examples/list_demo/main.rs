@@ -184,7 +184,7 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
         ListItem::new("fixed"),
         ListItem::new("styled items"),
     ];
-    let _ = state.picker.resize(4);
+    state.picker.resize(4);
 
     let demo_list_area = demo_list_area.inner(&Margin {
         vertical: 2,
@@ -224,7 +224,7 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
         .default_style(Style::reset().bg(Color::Black).fg(Color::White))
         .selected_style(Style::default().bg(Color::Blue).fg(Color::White))
         .item_display(ItemDisplay::Separated);
-    let _ = f.render_stateful_widget(select_list, select_list_area, &mut state.picker);
+    f.render_stateful_widget(select_list, select_list_area, &mut state.picker);
 
     let code_block = Block::default()
         .borders(Borders::ALL)
