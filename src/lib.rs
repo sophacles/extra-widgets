@@ -23,5 +23,9 @@
 //!
 #[cfg(feature = "calendar")]
 pub mod calendar;
+
 #[cfg(feature = "separated_list")]
 pub mod separated_list;
+
+#[cfg(feature = "text_macros")]
+mod text_macros;

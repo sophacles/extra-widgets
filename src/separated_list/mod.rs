@@ -252,7 +252,7 @@ where
 
 impl<'a, I> Widget for SeparatedList<'a, I>
 where
-    I: Iterator<Item = ListItem<'a>>,
+    I: IntoIterator<Item = ListItem<'a>>,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let mut state = ListState::default();
