@@ -21,6 +21,7 @@
 //! ```
 //! Dependencies for each widget are only pulled if the feature is enabled.
 //!
+//! Macros (e.g. `bold!(...)`) are gated by the `text_macros` feature.
 #[cfg(feature = "calendar")]
 pub mod calendar;
 

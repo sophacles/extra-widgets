@@ -1,3 +1,7 @@
+//! macros for building and styling text for tui.
+
+/// styles text into a span with the bold modifier set. The argument must evaluate to something
+/// that implements Into<Span>
 #[macro_export]
 macro_rules! bold {
     ($e:expr) => {{
@@ -7,6 +11,8 @@ macro_rules! bold {
     }};
 }
 
+/// styles text into a span with the italic modifier set. The argument must evaluate to something
+/// that implements Into<Span>
 #[macro_export]
 macro_rules! italic {
     ($e:expr) => {{
@@ -16,6 +22,8 @@ macro_rules! italic {
     }};
 }
 
+/// styles text into a span with the underlined modifier set. The argument must evaluate to something
+/// that implements Into<Span>
 #[macro_export]
 macro_rules! underlined {
     ($e:expr) => {{
@@ -25,6 +33,7 @@ macro_rules! underlined {
     }};
 }
 
+/// Creates a Vec<Spans> from each line of the enclosed block
 #[macro_export]
 macro_rules! text {
     ($t:expr) => {
