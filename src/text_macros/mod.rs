@@ -97,4 +97,19 @@ mod tests {
 
         assert_eq!(expected, test);
     }
+
+    #[test]
+    fn text_single_line() {
+        let mut expected = Vec::new();
+        expected.push(Spans::from(Span::styled(
+            "foo",
+            Style::default().add_modifier(Modifier::ITALIC),
+        )));
+
+        let test = text! {
+            italic!("foo");
+        };
+
+        assert_eq!(expected, test);
+    }
 }
