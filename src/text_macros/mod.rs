@@ -83,7 +83,7 @@ macro_rules! text {
 #[cfg(test)]
 mod tests {
     use tui::{
-        style::{Color, Modifier, Style},
+        style::{Modifier, Style},
         text::{Span, Spans},
     };
 
@@ -122,15 +122,16 @@ mod tests {
 
     #[test]
     fn text() {
-        let mut expected = Vec::new();
-        expected.push(Spans::from(Span::styled(
-            "foo",
-            Style::default().add_modifier(Modifier::ITALIC),
-        )));
-        expected.push(Spans::from(Span::styled(
-            "bar",
-            Style::default().add_modifier(Modifier::UNDERLINED),
-        )));
+        let expected = vec![
+            Spans::from(Span::styled(
+                "foo",
+                Style::default().add_modifier(Modifier::ITALIC),
+            )),
+            Spans::from(Span::styled(
+                "bar",
+                Style::default().add_modifier(Modifier::UNDERLINED),
+            )),
+        ];
 
         let test = text! {
             italic!("foo");
@@ -142,11 +143,10 @@ mod tests {
 
     #[test]
     fn text_single_line() {
-        let mut expected = Vec::new();
-        expected.push(Spans::from(Span::styled(
+        let expected = vec![Spans::from(Span::styled(
             "foo",
             Style::default().add_modifier(Modifier::ITALIC),
-        )));
+        ))];
 
         let test = text! {
             italic!("foo");

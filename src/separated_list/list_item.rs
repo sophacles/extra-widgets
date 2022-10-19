@@ -41,7 +41,7 @@ impl<'a> ListItem<'a> {
 }
 
 /// Container for holding the [Indicator]s for the left and right indicator columns
-#[derive(Copy, Clone, Default, PartialEq, Debug)]
+#[derive(Copy, Clone, Default, PartialEq, Debug, Eq)]
 pub struct LineIndicators {
     pub(super) left: Indicator,
     pub(super) right: Indicator,
@@ -64,7 +64,7 @@ impl LineIndicators {
 /// Each indicator is a single column wide, and used to decorate a [ListItem] that is displayed.
 /// Since [ListItems] may be multiple lines, various strategies are available for how to display
 /// the indicator - see the variants for details
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Eq)]
 pub enum Indicator {
     /// each line of text for the item will display this char in the indicator column
     Char(&'static str),
