@@ -33,6 +33,39 @@ macro_rules! underlined {
     }};
 }
 
+/// styles text into a span with the foreground set. The first argument must evaluate to something
+/// that implements Into<Span>, and the second a Color
+#[macro_export]
+macro_rules! fg {
+    ($t:expr, $c: expr) => {{
+        let mut s = ::tui::text::Span::from($t);
+        s.style = s.style.fg($c);
+        s
+    }};
+}
+
+/// styles text into a span with the background set. The first argument must evaluate to something
+/// that implements Into<Span>, and the second a Color
+#[macro_export]
+macro_rules! bg {
+    ($t:expr, $c: expr) => {{
+        let mut s = ::tui::text::Span::from($t);
+        s.style = s.style.bg($c);
+        s
+    }};
+}
+
+/// group multiple Span into a single Spans. Useful with `text!` for having multipl stylings in a
+/// single line
+#[macro_export]
+macro_rules! line {
+    ($($e:expr),* $(,)?) => {{
+        let mut res = ::tui::text::Spans::default();
+        $(res.0.push(::tui::text::Span::from($e));)*;
+        res
+    }};
+}
+
 /// Creates a Vec<Spans> from each line of the enclosed block
 #[macro_export]
 macro_rules! text {
@@ -41,7 +74,7 @@ macro_rules! text {
     };
     ($($t:expr);* $(;)?) => {{
         let mut res = Vec::new();
-        $(res.push(Spans::from($t));)*
+        $(res.push(::tui::text::Spans::from($t));)*
         res
 
     }};
