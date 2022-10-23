@@ -29,4 +29,4 @@ pub mod calendar;
 pub mod separated_list;
 
 #[cfg(feature = "text_macros")]
-mod text_macros;
+pub mod text_macros;

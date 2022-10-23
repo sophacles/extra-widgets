@@ -55,6 +55,52 @@ macro_rules! bg {
     }};
 }
 
+/// Trait to allow all the overloading of the add_lines method
+/// This is a helper to simplify the [text!] macro, and should not be used directly.
+pub trait AddLines<T> {
+    fn add_lines(&mut self, to_add: T);
+}
+
+impl<'a> AddLines<&'a str> for ::tui::text::Text<'a> {
+    fn add_lines(&mut self, to_add: &'a str) {
+        self.lines.push(to_add.into());
+    }
+}
+
+impl<'a> AddLines<String> for ::tui::text::Text<'a> {
+    fn add_lines(&mut self, to_add: String) {
+        self.lines.push(to_add.into());
+    }
+}
+
+impl<'a> AddLines<::tui::text::Span<'a>> for ::tui::text::Text<'a> {
+    fn add_lines(&mut self, to_add: ::tui::text::Span<'a>) {
+        self.lines.push(to_add.into());
+    }
+}
+
+impl<'a> AddLines<::tui::text::Spans<'a>> for ::tui::text::Text<'a> {
+    fn add_lines(&mut self, to_add: ::tui::text::Spans<'a>) {
+        self.lines.push(to_add);
+    }
+}
+
+impl<'a> AddLines<Vec<::tui::text::Spans<'a>>> for ::tui::text::Text<'a> {
+    fn add_lines(&mut self, mut to_add: Vec<::tui::text::Spans<'a>>) {
+        self.lines.append(&mut to_add);
+    }
+}
+
+/// Create a Vec<Spans> from lines of a string separated by '\n'
+#[macro_export]
+macro_rules! split {
+    ($e:expr) => {{
+        $e.lines()
+            .map(|l| ::tui::text::Spans::from(l))
+            .collect::<Vec<::tui::text::Spans>>()
+    }};
+}
+
 /// group multiple Span into a single Spans. Useful with `text!` for having multipl stylings in a
 /// single line
 #[macro_export]
@@ -73,10 +119,10 @@ macro_rules! text {
         res.push(Spans::from($t));
     };
     ($($t:expr);* $(;)?) => {{
-        let mut res = Vec::new();
-        $(res.push(::tui::text::Spans::from($t));)*
+        use $crate::text_macros::AddLines;
+        let mut res = ::tui::text::Text::default();
+        $(res.add_lines($t);)*
         res
-
     }};
 }
 
@@ -84,7 +130,7 @@ macro_rules! text {
 mod tests {
     use tui::{
         style::{Modifier, Style},
-        text::{Span, Spans},
+        text::{Span, Spans, Text},
     };
 
     #[test]
@@ -122,7 +168,7 @@ mod tests {
 
     #[test]
     fn text() {
-        let expected = vec![
+        let mut expected = Text::from(vec![
             Spans::from(Span::styled(
                 "foo",
                 Style::default().add_modifier(Modifier::ITALIC),
@@ -131,22 +177,42 @@ mod tests {
                 "bar",
                 Style::default().add_modifier(Modifier::UNDERLINED),
             )),
-        ];
+            Spans::from("baz"),
+        ]);
 
         let test = text! {
             italic!("foo");
             underlined!("bar");
+            "baz";
         };
+        assert_eq!(expected, test);
 
+        let test = text! {
+            italic!("foo");
+            underlined!("bar");
+            "baz"
+        };
+        assert_eq!(expected, test);
+
+        let test = text! {
+            italic!("foo");
+            underlined!("bar");
+            "baz";
+            "a\nb";
+            split!("q\nr")
+        };
+        expected.lines.push(Spans::from("a\nb"));
+        expected.lines.push(Spans::from("q"));
+        expected.lines.push(Spans::from("r"));
         assert_eq!(expected, test);
     }
 
     #[test]
     fn text_single_line() {
-        let expected = vec![Spans::from(Span::styled(
+        let expected = Text::from(vec![Spans::from(Span::styled(
             "foo",
             Style::default().add_modifier(Modifier::ITALIC),
-        ))];
+        ))]);
 
         let test = text! {
             italic!("foo");

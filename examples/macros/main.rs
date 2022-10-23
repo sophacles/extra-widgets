@@ -15,7 +15,7 @@ use tui::{
     Frame, Terminal,
 };
 
-use extra_widgets::{bg, bold, fg, italic, line, text, underlined};
+use extra_widgets::{bg, bold, fg, italic, line, split, text, underlined};
 
 fn main() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
@@ -61,6 +61,7 @@ fn draw<B: Backend>(f: &mut Frame<B>) {
             " ",
             bg!(fg!("text", Color::Black), Color::White),
         );
+        split!("and some free form:\n * it's\n * fun!")
     };
 
     let code = r#"
@@ -81,6 +82,7 @@ text! {
         " ",
         bg!(fg!("text", Color::Black), Color::White),
     );
+    split!("and some free form:\n * it's\n * fun!")
 };"#;
 
     let (code_pane, result_pane) = {
