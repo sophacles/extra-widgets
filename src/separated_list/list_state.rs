@@ -1,3 +1,5 @@
+use std::cmp::min;
+
 /// State for a [`SeparatedList`](super::SeparatedList)
 ///
 /// This state tracks the selected item in a list, and provides methods for cycling the list.
@@ -22,19 +24,29 @@ impl ListState {
         self.window_first = pos;
     }
 
-    /// Select the next item in the list. If the current item is the last [`ListItem`](super::ListItem), it will
-    /// move the selection to the first [`ListItem`](super::ListItem)
+    /// Select the next [ListItem](super::ListItem) without wrapping
+    pub fn next(&mut self) {
+        self.selected = min(self.selected + 1, self.size - 1)
+    }
+
+    /// Select the previous [ListItem](super::ListItem) without wrapping
+    pub fn prev(&mut self) {
+        self.selected = self.selected.saturating_sub(1);
+    }
+
+    /// Select the next item in the list. If the current item is the last [ListItem`(super::ListItem), it will
+    /// move the selection to the first [ListItem](super::ListItem)
     pub fn cycle_next(&mut self) {
         self.selected = (self.selected + 1) % self.size;
     }
 
-    /// Select the previous item in the list. If the current item is the first [`ListItem`](super::ListItem), it will
-    /// move the selection to the last [`ListItem`](super::ListItem)
+    /// Select the previous item in the list. If the current item is the first [ListItem](super::ListItem), it will
+    /// move the selection to the last [ListItem](super::ListItem)
     pub fn cycle_prev(&mut self) {
         self.selected = (self.selected + self.size - 1) % self.size;
     }
 
-    /// Specify which [`ListItem`](super::ListItem) is selected. If the selection is beyond the end of the list, the
+    /// Specify which [ListItem](super::ListItem) is selected. If the selection is beyond the end of the list, the
     /// last item will be selected.
     pub fn select(&mut self, n: usize) {
         self.selected = n;
@@ -43,12 +55,12 @@ impl ListState {
         }
     }
 
-    /// Get the index of the selected [`ListItem`](super::ListItem)
+    /// Get the index of the selected [ListItem](super::ListItem)
     pub fn selected(&self) -> usize {
         self.selected
     }
 
-    /// set the number of [`ListItems`](super::ListItem) in the list.
+    /// set the number of [ListItems](super::ListItem) in the list.
     pub fn resize(&mut self, size: usize) {
         self.size = size;
         if self.selected >= self.size {
