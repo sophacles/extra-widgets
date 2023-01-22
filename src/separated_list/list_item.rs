@@ -62,7 +62,7 @@ impl LineIndicators {
 /// An indicator for an item.
 ///
 /// Each indicator is a single column wide, and used to decorate a [ListItem] that is displayed.
-/// Since [ListItems] may be multiple lines, various strategies are available for how to display
+/// Since a [`ListItem`] may be multiple lines, various strategies are available for how to display
 /// the indicator - see the variants for details
 #[derive(Copy, Clone, PartialEq, Debug, Eq)]
 pub enum Indicator {

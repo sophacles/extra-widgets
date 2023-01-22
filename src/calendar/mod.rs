@@ -1,11 +1,11 @@
 //! A simple calendar widget.
 //!
-//! The [Calendar] widget will display a calendar for the monh provided in `display_date`. Days are
+//! The [`Calendar`] widget will display a calendar for the monh provided in `display_date`. Days are
 //! styled using the default sytle unless:
 //! * `show_surrounding` is set, then days not in the `display_date` month will use that style.
-//! * a style is returned by the [DateStyler] for the day
+//! * a style is returned by the [`DateStyler`] for the day
 //!
-//! [Calendar] has several controls for what should be displayed
+//! [`Calendar`] has several controls for what should be displayed
 //!
 //! **Note:** this calendar operates on dates from the [time crate](https://crates.io/crates/time)
 //! In the future this may be changed to [chrono](https://crates.io/crates/chrono)

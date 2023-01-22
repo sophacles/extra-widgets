@@ -1,10 +1,14 @@
 use std::cmp::min;
 
+#[cfg(feature = "serde")]
+use serde_derive::{Deserialize, Serialize};
+
 /// State for a [`SeparatedList`](super::SeparatedList)
 ///
 /// This state tracks the selected item in a list, and provides methods for cycling the list.
 /// The size of the list is the number of [`ListItem`](super::ListItem)s to cycle through.
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ListState {
     pub(super) size: usize,
     pub(super) selected: usize,

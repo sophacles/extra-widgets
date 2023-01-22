@@ -22,6 +22,15 @@
 //! Dependencies for each widget are only pulled if the feature is enabled.
 //!
 //! Macros (e.g. `bold!(...)`) are gated by the `text_macros` feature.
+//!
+//! ### Serde support
+//!
+//! State structs can be serialized with Serde by enabling the `serde` feature. This can be useful
+//! (for example) in apps that wish to save state to disk and restore it on the next run.
+//!
+//! Serializeable states:
+//!   * [separated_list::ListState]
+//!
 #[cfg(feature = "calendar")]
 pub mod calendar;
 

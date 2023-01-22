@@ -1,7 +1,7 @@
 //! macros for building and styling text for tui.
 
 /// styles text into a span with the bold modifier set. The argument must evaluate to something
-/// that implements Into<Span>
+/// that implements [`Into<Span>`](tui::text::Span)
 #[macro_export]
 macro_rules! bold {
     ($e:expr) => {{
@@ -12,7 +12,7 @@ macro_rules! bold {
 }
 
 /// styles text into a span with the italic modifier set. The argument must evaluate to something
-/// that implements Into<Span>
+/// that implements [`Into<Span>`](tui::text::Span)
 #[macro_export]
 macro_rules! italic {
     ($e:expr) => {{
@@ -23,7 +23,7 @@ macro_rules! italic {
 }
 
 /// styles text into a span with the underlined modifier set. The argument must evaluate to something
-/// that implements Into<Span>
+/// that implements [`Into<Span>`](tui::text::Span)
 #[macro_export]
 macro_rules! underlined {
     ($e:expr) => {{
@@ -34,7 +34,7 @@ macro_rules! underlined {
 }
 
 /// styles text into a span with the foreground set. The first argument must evaluate to something
-/// that implements Into<Span>, and the second a Color
+/// that implements [`Into<Span>`](tui::text::Span), and the second a [`Color`](tui::style::Color)
 #[macro_export]
 macro_rules! fg {
     ($t:expr, $c: expr) => {{
@@ -44,8 +44,8 @@ macro_rules! fg {
     }};
 }
 
-/// styles text into a span with the background set. The first argument must evaluate to something
-/// that implements Into<Span>, and the second a Color
+/// Styles text into a span with the background set. The first argument must evaluate to something
+/// that implements [`Into<Span>`](tui::text::Span), and the second a [Color](tui::style::Color)
 #[macro_export]
 macro_rules! bg {
     ($t:expr, $c: expr) => {{
@@ -56,7 +56,7 @@ macro_rules! bg {
 }
 
 /// Trait to allow all the overloading of the add_lines method
-/// This is a helper to simplify the [text!] macro, and should not be used directly.
+/// This is a helper to simplify the [text!](crate::text!) macro, and should not be used directly.
 pub trait AddLines<T> {
     fn add_lines(&mut self, to_add: T);
 }
@@ -91,7 +91,7 @@ impl<'a> AddLines<Vec<::tui::text::Spans<'a>>> for ::tui::text::Text<'a> {
     }
 }
 
-/// Create a Vec<Spans> from lines of a string separated by '\n'
+/// Create a [`Vec<Spans>`](tui::text::Spans) from lines of a string separated by '\n'
 #[macro_export]
 macro_rules! split {
     ($e:expr) => {{
@@ -101,8 +101,9 @@ macro_rules! split {
     }};
 }
 
-/// group multiple Span into a single Spans. Useful with `text!` for having multipl stylings in a
-/// single line
+/// Create a single [Spans](tui::text::Spans) from many
+/// [Span](tui::text::Span) structs. Useful with [`text!`](crate::text!)
+/// for having multiple stylings in a single line
 #[macro_export]
 macro_rules! line {
     ($($e:expr),* $(,)?) => {{
@@ -112,7 +113,7 @@ macro_rules! line {
     }};
 }
 
-/// Creates a Vec<Spans> from each line of the enclosed block
+/// Creates a `Vec<Spans>` from each line of the enclosed block
 #[macro_export]
 macro_rules! text {
     ($t:expr) => {
