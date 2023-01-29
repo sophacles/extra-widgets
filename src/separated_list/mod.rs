@@ -303,7 +303,7 @@ impl WindowType {
     /// Iterate through the rendered display lines and produce the ones that should be shown in the
     /// window.
     fn get_display_lines<'a, I>(
-        &self,
+        self,
         items: I,
         window_size: usize,
         list_state: &mut ListState,
