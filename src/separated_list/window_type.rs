@@ -156,6 +156,7 @@ where
 /// line selector for [`WindowType::Fixed`](super::WindowType::Fixed).
 pub(super) fn fixed<'a, I>(
     items: I,
+    at: usize,
     window_size: usize,
     _list_state: &mut ListState,
 ) -> <BoundedVecDeque<I::Item> as IntoIterator>::IntoIter
@@ -165,7 +166,7 @@ where
     let mut sel_state = SelState::default();
     let mut buffer =
         //BoundedVecDeque::from_iter(std::iter::repeat(DisplayLine::filler("")).take(4), 4);
-        BoundedVecDeque::from_iter(std::iter::repeat(DisplayLine::filler("")).take(4), 4);
+        BoundedVecDeque::from_iter(std::iter::repeat(DisplayLine::filler("")).take(at), at);
 
     for (i, dl) in items.into_iter().enumerate() {
         sel_state.toggle(dl.must_display, i);

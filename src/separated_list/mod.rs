@@ -74,7 +74,7 @@ pub enum WindowType {
     SelectionScroll,
     /// Display the rendered lines so that the selected [`ListItem`] always displays in the same
     /// place on the screen. Effectively this always "moves the list" around the selection.
-    Fixed,
+    Fixed(usize),
 }
 
 /// A general purpose List widget that has several modes of display
@@ -314,7 +314,7 @@ impl WindowType {
         use WindowType::*;
         match self {
             SelectionScroll => window_type::selection_scroll(items, window_size, list_state),
-            Fixed => window_type::fixed(items, window_size, list_state),
+            Fixed(at) => window_type::fixed(items, at, window_size, list_state),
         }
     }
 }
