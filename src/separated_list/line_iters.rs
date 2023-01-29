@@ -60,8 +60,7 @@ pub(super) struct Basic<'a, I>
 where
     I: IntoIterator<Item = ToLines<'a>>,
 {
-    items: I::IntoIter,
-    current: Option<ToLines<'a>>,
+    items: std::iter::Flatten<I::IntoIter>,
 }
 
 impl<'a, I> Basic<'a, I>
@@ -69,9 +68,8 @@ where
     I: IntoIterator<Item = ToLines<'a>>,
 {
     pub(super) fn new(items: I) -> Self {
-        let mut items = items.into_iter();
-        let current = items.next();
-        Self { items, current }
+        let items = items.into_iter().flatten();
+        Self { items }
     }
 }
 
@@ -81,16 +79,7 @@ where
 {
     type Item = DisplayLine<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        let lines = self.current.as_mut()?;
-        match lines.next() {
-            Some(l) => Some(l),
-            None => {
-                let mut new_lines: ToLines = self.items.next()?;
-                let res = new_lines.next();
-                self.current = Some(new_lines);
-                res
-            }
-        }
+        self.items.next()
     }
 }
 
