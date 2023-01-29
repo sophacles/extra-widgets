@@ -2,6 +2,28 @@
 //!
 //! This list models its display on by rendering all the [`ListItem`] elements of `items` into
 //! indivdual lines of text, and then moving a window over the lines to acheive the final view.
+// This whole thing is implemented as pipeline of iterators applying a series of transforms
+// on the iterator of ListItems the SeparatedList is generic on.
+//
+// The transforms go like this:
+//
+// ListItem -> ToLines -> DisplayLine
+//
+// ToLines is an internal iterator over the text of of the ListItem's line of text, turing them
+// into DisplayLines
+//
+// DisplayLine can be turned into a fully styled entry displayed in the SeparatedList widget.
+//
+// The rendering pipeline goes like this:
+//
+// items
+// -> Apply selection styling based on state
+// -> flatten iter of ToLines to iter of DisplayLine, insert any DisplayLines for the ItemDisplay
+//    style
+// -> Filter the DiplayLines iterator to only the lines to draw via the window iterator.
+//
+// The window iterators process in a single pass so this pipeline is at worst O(n) (althougth if
+// window fills up before finishing the display, it will stop iteration before that.
 mod line_iters;
 mod list_item;
 mod list_state;
@@ -31,20 +53,8 @@ struct DisplayLine<'a> {
     pub(super) right_indicator: Spans<'a>,
 }
 
-impl<'a> DisplayLine<'a> {
-    /// Construct an empty DisplayLine (e.g as a placeholder)
-    fn filler(x: &'static str) -> Self {
-        Self {
-            style: Style::default(),
-            line: Spans::from(x),
-            must_display: false,
-            left_indicator: Spans::from(x),
-            right_indicator: Spans::from(x),
-        }
-    }
-}
-
 /// Control how lines are rendered
+#[derive(Debug, Copy, Clone)]
 pub enum ItemDisplay {
     /// Basic `ItemDisplay` simply renders each text line in the [`ListItem`] iterator into a
     /// display line.
@@ -65,26 +75,6 @@ pub enum WindowType {
     /// Display the rendered lines so that the selected [`ListItem`] always displays in the same
     /// place on the screen. Effectively this always "moves the list" around the selection.
     Fixed,
-}
-
-impl WindowType {
-    /// Iterate through the rendered display lines and produce the ones that should be shown in the
-    /// window.
-    fn get_display_lines<'a, I>(
-        &self,
-        items: I,
-        window_size: usize,
-        list_state: &mut ListState,
-    ) -> impl Iterator<Item = DisplayLine<'a>>
-    where
-        I: Iterator<Item = DisplayLine<'a>>,
-    {
-        use WindowType::*;
-        match self {
-            SelectionScroll => window_type::selection_scroll(items, window_size, list_state),
-            Fixed => window_type::fixed(items, window_size, list_state),
-        }
-    }
 }
 
 /// A general purpose List widget that has several modes of display
@@ -194,6 +184,8 @@ where
 
         let sep = Separator::new(area.width as usize, self.default_style);
 
+        // Start the pipeline: appy indicators and patch in appropriate stylings.
+        // Then convert to a ToLines.
         let selected = state.selected;
         let iter = self.items.into_iter().enumerate().map(|(i, mut it)| {
             if i == selected {
@@ -208,15 +200,15 @@ where
             line_iters::ToLines::new(it, i == selected)
         });
 
-        let item_display: Box<dyn Iterator<Item = DisplayLine<'a>>> = match self.item_display {
-            ItemDisplay::Basic => Box::new(line_iters::Basic::new(iter)),
-            ItemDisplay::Separated => Box::new(line_iters::Separated::new(iter, sep)),
-        };
+        // Next step of pipeline, apply DisplayLine renderer
+        let item_display = self.item_display.display_iter(iter, sep);
 
+        // Filter the lines to those in the current view window
         let lines = self
             .window_type
             .get_display_lines(item_display, area.height as usize, state);
 
+        // Draw the lines into the window.
         for (i, l) in lines.into_iter().enumerate() {
             let y = area.y + i as u16;
             // first fill the whole line area
@@ -257,5 +249,72 @@ where
     fn render(self, area: Rect, buf: &mut Buffer) {
         let mut state = ListState::default();
         StatefulWidget::render(self, area, buf, &mut state);
+    }
+}
+
+// Private impls of conveience functions in render
+impl<'a> DisplayLine<'a> {
+    /// Construct an empty DisplayLine (e.g as a placeholder)
+    fn filler(x: &'static str) -> Self {
+        Self {
+            style: Style::default(),
+            line: Spans::from(x),
+            must_display: false,
+            left_indicator: Spans::from(x),
+            right_indicator: Spans::from(x),
+        }
+    }
+}
+
+impl ItemDisplay {
+    fn display_iter<'a, I>(self, iter: I, sep: Separator) -> DisplayIter<'a, I>
+    where
+        I: IntoIterator<Item = line_iters::ToLines<'a>>,
+    {
+        match self {
+            ItemDisplay::Basic => DisplayIter::Basic(line_iters::Basic::new(iter)),
+            ItemDisplay::Separated => DisplayIter::Separated(line_iters::Separated::new(iter, sep)),
+        }
+    }
+}
+
+enum DisplayIter<'a, I>
+where
+    I: IntoIterator<Item = line_iters::ToLines<'a>>,
+{
+    Basic(line_iters::Basic<'a, I>),
+    Separated(line_iters::Separated<'a, I>),
+}
+
+impl<'a, I> Iterator for DisplayIter<'a, I>
+where
+    I: IntoIterator<Item = line_iters::ToLines<'a>>,
+{
+    type Item = DisplayLine<'a>;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            DisplayIter::Basic(ref mut b) => b.next(),
+            DisplayIter::Separated(ref mut s) => s.next(),
+        }
+    }
+}
+
+impl WindowType {
+    /// Iterate through the rendered display lines and produce the ones that should be shown in the
+    /// window.
+    fn get_display_lines<'a, I>(
+        &self,
+        items: I,
+        window_size: usize,
+        list_state: &mut ListState,
+    ) -> impl Iterator<Item = DisplayLine<'a>>
+    where
+        I: Iterator<Item = DisplayLine<'a>>,
+    {
+        use WindowType::*;
+        match self {
+            SelectionScroll => window_type::selection_scroll(items, window_size, list_state),
+            Fixed => window_type::fixed(items, window_size, list_state),
+        }
     }
 }
