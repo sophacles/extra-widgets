@@ -29,46 +29,55 @@ impl Default for SelState {
     }
 }
 
-/// Tracking for the display window.
+/// Tracking for the display window used in selection scroll. The display window is the slice of
+/// lines that should be rendered to that screen. `top` is the first element of that slice.
+///
+/// When possible, the items displayed on the screen should remain the same, even if the selection
+/// changes. This is stored in the `goal` member. The window may be advanced past the goal to ensure
+/// the entire selection is displayed.
+///
+/// Restricting the window to an index prevents the top from going any further than that index.
+/// This is set to the first line of the selection, so that the selection can be displayed in full.
 struct Window {
-    goal_index: usize,
-    curr_index: usize,
-    fixed: Option<usize>,
+    goal: usize,
+    top: usize,
+    restriction: Option<usize>,
 }
 
 impl Window {
     fn new(prev_pos: usize) -> Self {
         Self {
-            goal_index: prev_pos,
-            curr_index: 0,
-            fixed: None,
+            goal: prev_pos,
+            top: 0,
+            restriction: None,
         }
     }
 
-    fn fix(&mut self, state: SelState) {
-        if self.fixed.is_none() {
+    /// Idempotent method to restrict the winow the first time it's called with
+    /// SelState::Started(idx), which will set the restriction to idx.
+    fn restrict(&mut self, state: SelState) {
+        if self.restriction.is_none() {
             if let SelState::Started(i) = state {
-                self.fixed = Some(i);
+                self.restriction = Some(i);
             }
         }
     }
 
+    /// move the top of the window forward.
     fn advance(&mut self) {
-        if self.goal_index == self.curr_index {
-            self.goal_index += 1;
-        }
-        self.curr_index += 1;
+        self.top += 1;
     }
 
+    /// Has the top reached or passed the goal?
     fn is_aligned(&self) -> bool {
-        self.goal_index == self.curr_index
+        self.top >= self.goal
     }
 
-    fn can_advance(&self) -> bool {
-        if let Some(s) = self.fixed {
-            self.curr_index < s
-        } else {
-            true
+    /// Has the top reached the restriction?
+    fn is_restricted(&self) -> bool {
+        match self.restriction {
+            Some(s) => self.top >= s,
+            None => false,
         }
     }
 }
@@ -77,8 +86,8 @@ impl Display for Window {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "goal: {}, curr: {}, fixed: {:?}",
-            self.goal_index, self.curr_index, self.fixed
+            "goal: {}, curr: {}, restriction: {:?}",
+            self.goal, self.top, self.restriction
         )
     }
 }
@@ -95,19 +104,19 @@ where
     let mut window = Window::new(list_state.window_first);
     let mut sel_state = SelState::NotSeen;
 
+    // This stores the lines that will be displayed.
     let mut buffer = BoundedVecDeque::<I::Item>::new(window_size);
 
-    // if we haven't hit the end condition before hitting the end of the input iter,
-    // just fall off and return whatever is buffered
     for (i, l) in items.into_iter().enumerate() {
         sel_state.toggle(l.must_display, i);
-        window.fix(sel_state);
-        // always try to fill the window
+        window.restrict(sel_state);
+        // Fill the window before advancing it.
         if !buffer.is_full() {
             buffer.push_back(l);
             continue;
         }
 
+        // since the buffer is full, check in on the state machine
         match sel_state {
             // if we haven't seen selection yet, push the window forward
             SelState::NotSeen => {
@@ -115,35 +124,32 @@ where
                 buffer.push_back(l);
             }
 
+            // as long as the window isn't restricted, advance so to fit the whole selection. This
+            // catches the cases where seletion moved "up" beyond the first line previously
+            // displayed.
             SelState::Started(_) => {
-                if window.can_advance() {
+                if window.is_restricted() {
+                    break;
+                } else {
                     window.advance();
                     buffer.push_back(l);
-                } else {
-                    break;
                 }
             }
+            // Since the whole selection is on screen, the quit either on alignment or restriction.
+            // This catches the cases where the selection moved "down" to include lines off the
+            // screen, and where the selected items has more lines than the current window.
             SelState::Complete => {
-                // It kind of looks like the first and second break can be consolidated.
-                // looks can be deceiving:
-                // The first break is the happy path break, we want to break here because the
-                // window is aligned with the target, and the selection is fully shown.
-                // The second break is the "give up" path, because the window can't be advanced
-                // in search of alignment, but isn't aligned either.
-
-                if window.is_aligned() {
+                if window.is_aligned() || window.is_restricted() {
                     break;
-                } else if window.can_advance() {
+                } else {
                     window.advance();
                     buffer.push_back(l);
-                } else {
-                    break;
                 }
             }
         }
     }
 
-    list_state.set_pos(window.curr_index);
+    list_state.set_pos(window.top);
     buffer.into_iter()
 }
 
@@ -158,6 +164,7 @@ where
 {
     let mut sel_state = SelState::default();
     let mut buffer =
+        //BoundedVecDeque::from_iter(std::iter::repeat(DisplayLine::filler("")).take(4), 4);
         BoundedVecDeque::from_iter(std::iter::repeat(DisplayLine::filler("")).take(4), 4);
 
     for (i, dl) in items.into_iter().enumerate() {

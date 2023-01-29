@@ -40,13 +40,12 @@ impl<'a> Separator {
 
     pub(super) fn display_line(&self, must_display: bool) -> DisplayLine<'a> {
         let line = HALF.repeat(self.width);
-        let left_indicator = HALF;
         DisplayLine {
             style: self.curr_style,
             line: line.into(),
             must_display,
-            left_indicator: left_indicator.into(),
-            right_indicator: left_indicator.into(),
+            left_indicator: HALF.into(),
+            right_indicator: HALF.into(),
         }
     }
 }
