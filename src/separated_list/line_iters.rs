@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::iter::Enumerate;
 
 use tui::{style::Style, text::Spans};
 
@@ -7,35 +7,35 @@ use super::{DisplayLine, LineIndicators, ListItem, Separator};
 /// A struct for iterating through display lines given an item and a selection state
 pub(super) struct ToLines<'a> {
     style: Style,
-    text_items: VecDeque<(usize, usize, Spans<'a>)>,
+    text_items: Enumerate<std::vec::IntoIter<Spans<'a>>>,
+    //text_items: VecDeque<(usize, usize, Spans<'a>)>,
     indicators: LineIndicators,
     selected: bool,
+    line_count: usize,
 }
 
 impl<'a> ToLines<'a> {
     pub(super) fn new(item: ListItem<'a>, selected: bool) -> Self {
         let line_count = item.height();
-        let text_items = VecDeque::from_iter(
-            item.content
-                .lines
-                .into_iter()
-                .enumerate()
-                .map(|(i, line)| (i, line_count, line)),
-        );
+        let text_items = item.content.lines.into_iter().enumerate();
+
+        //let text_items = VecDeque::from_iter(text_items);
         Self {
             style: item.style,
             text_items,
             indicators: item.indicators,
             selected,
+            line_count,
         }
     }
 
     pub(super) fn empty_with_selection(selected: bool) -> Self {
         Self {
             style: Style::default(),
-            text_items: VecDeque::new(),
+            text_items: Vec::new().into_iter().enumerate(),
             selected,
             indicators: LineIndicators::default(),
+            line_count: 0,
         }
     }
 }
@@ -43,13 +43,13 @@ impl<'a> ToLines<'a> {
 impl<'a> Iterator for ToLines<'a> {
     type Item = DisplayLine<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        let (i, line_count, line) = self.text_items.pop_front()?;
+        let (i, line) = self.text_items.next()?;
         let res = DisplayLine {
             style: self.style,
             line,
             must_display: self.selected,
-            left_indicator: self.indicators.left.fill_char(i, line_count).into(),
-            right_indicator: self.indicators.right.fill_char(i, line_count).into(),
+            left_indicator: self.indicators.left.fill_char(i, self.line_count).into(),
+            right_indicator: self.indicators.right.fill_char(i, self.line_count).into(),
         };
         Some(res)
     }
