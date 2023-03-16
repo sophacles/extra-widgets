@@ -141,7 +141,7 @@ mod cals {
             .default_style(default_style)
     }
 
-    fn july<'a, S: DateStyler>(_m: Month, _y: i32, es: S) -> Calendar<'a, S> {
+    fn july<'a, S: DateStyler>(_m: Month, y: i32, es: S) -> Calendar<'a, S> {
         let header_style = Style::default()
             .add_modifier(Modifier::BOLD)
             .fg(Color::Green);
@@ -150,7 +150,7 @@ mod cals {
             .add_modifier(Modifier::BOLD)
             .bg(Color::Rgb(50, 50, 50));
 
-        Calendar::new(OffsetDateTime::now_local().unwrap().date(), es)
+        Calendar::new(Date::from_calendar_date(y, Month::July, 1).unwrap(), es)
             .show_surrounding(Style::default().add_modifier(Modifier::DIM))
             .show_weekdays(header_style)
             .default_style(default_style)
