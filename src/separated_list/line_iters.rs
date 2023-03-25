@@ -89,10 +89,10 @@ pub(super) struct Separated<'a, I>
 where
     I: IntoIterator<Item = ToLines<'a>>,
 {
-    items: std::iter::Peekable<I::IntoIter>,
-    current: Option<ToLines<'a>>,
+    tolines_iter: std::iter::Peekable<I::IntoIter>,
+    lines_iter: Option<ToLines<'a>>,
     separator: Separator,
-    last_line_selected: bool,
+    prev_was_selected: bool,
 }
 
 impl<'a, I> Separated<'a, I>
@@ -100,17 +100,17 @@ where
     I: IntoIterator<Item = ToLines<'a>>,
 {
     pub(super) fn new(items: I, separator: Separator) -> Self {
-        let mut items = items.into_iter().peekable();
-        // kick start the iterator to just handle the "current ended, must add separator"
+        let mut tolines_iter = items.into_iter().peekable();
+        // kick start the iterator to just handle the "lines_iter ended, must add separator"
         // case immediately so we start with a separator.
-        let current = items
+        let lines_iter = tolines_iter
             .peek()
             .map(|next| ToLines::empty_with_selection(next.selected));
         Self {
-            items,
-            current,
+            tolines_iter,
+            lines_iter,
             separator,
-            last_line_selected: false,
+            prev_was_selected: false,
         }
     }
 }
@@ -120,37 +120,42 @@ where
     I: IntoIterator<Item = ToLines<'a>>,
 {
     type Item = DisplayLine<'a>;
+    // This is basically a flatten and interleave.
+    //
+    // self.lines_iter is the ToLines that is currently being turned into DisplayLines.
+    // The separator tracks styles and generates the correct displayline
     fn next(&mut self) -> Option<Self::Item> {
-        let lines = self.current.as_mut()?;
+        // if lines_iter has been set to None, iterator is over
+        let lines = self.lines_iter.as_mut()?;
 
+        // otherwise get the next line from the iterator
         let res = match lines.next() {
             Some(l) => l,
-            None => match self.items.next() {
+            None => match self.tolines_iter.next() {
                 Some(next) => {
-                    let next_selected = next.selected;
-                    self.separator.cycle_color(next.style.bg);
-                    self.current = Some(next);
-                    self.separator
-                        .display_line(next_selected || self.last_line_selected)
+                    // if either or the neighbors are lines from the selected item,
+                    // the separator line is marked "must_display" also.
+                    let must_display = next.selected || self.prev_was_selected;
+                    let next_style = next.style;
+                    self.lines_iter = Some(next);
+                    self.separator.display_line(must_display, Some(next_style))
                 }
                 None => {
-                    self.current = None;
-                    self.separator.cycle_default();
-                    self.separator.display_line(self.last_line_selected)
+                    self.lines_iter = None;
+                    self.separator.display_line(self.prev_was_selected, None)
                 }
             },
         };
-        self.last_line_selected = res.must_display;
+        self.prev_was_selected = res.must_display;
         Some(res)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use tui::style::Color;
+    use tui::{style::Color, symbols::bar::HALF};
 
     use super::*;
-    use tui::symbols::bar::HALF;
 
     #[test]
     fn to_lines() {
