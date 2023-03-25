@@ -206,7 +206,7 @@ where
         // Filter the lines to those in the current view window
         let lines = self
             .window_type
-            .get_display_lines(item_display, area.height as usize, state);
+            .line_iter(item_display, area.height as usize, state);
 
         // Draw the lines into the window.
         for (i, l) in lines.into_iter().enumerate() {
@@ -232,8 +232,8 @@ where
 
             // show the right indicator and adjust the display area for the item text
             if self.show_right_indicator {
-                buf.set_spans(x + line_width - 1, y, &l.right_indicator, 1);
                 line_width -= 1;
+                buf.set_spans(x + line_width, y, &l.right_indicator, 1);
             }
 
             // show the item text
@@ -302,7 +302,7 @@ where
 impl WindowType {
     /// Iterate through the rendered display lines and produce the ones that should be shown in the
     /// window.
-    fn get_display_lines<'a, I>(
+    fn line_iter<'a, I>(
         self,
         items: I,
         window_size: usize,

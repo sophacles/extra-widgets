@@ -63,14 +63,14 @@ impl AppState {
 
     fn move_up(&mut self) {
         match self.focus {
-            Focus::Picker => self.picker.cycle_prev(),
+            Focus::Picker => self.picker.prev(),
             Focus::Example => self.examples.cycle_prev(),
         }
     }
 
     fn move_down(&mut self) {
         match self.focus {
-            Focus::Picker => self.picker.cycle_next(),
+            Focus::Picker => self.picker.next(),
             Focus::Example => self.examples.cycle_next(),
         }
     }

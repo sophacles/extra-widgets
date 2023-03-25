@@ -6,16 +6,16 @@ use super::{DisplayLine, ListState};
 
 /// A small state machine to track the display of selected items.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum SelState {
+enum SelectionState {
     NotSeen,
     Started(usize),
     Complete,
 }
 
-impl SelState {
-    fn toggle(&mut self, sel: bool, index: usize) {
-        use SelState::*;
-        *self = match (*self, sel) {
+impl SelectionState {
+    fn toggle(&mut self, item_selected: bool, index: usize) {
+        use SelectionState::*;
+        *self = match (*self, item_selected) {
             (NotSeen, true) => Started(index),
             (Started(_), false) => Complete,
             _ => *self,
@@ -23,9 +23,9 @@ impl SelState {
     }
 }
 
-impl Default for SelState {
+impl Default for SelectionState {
     fn default() -> Self {
-        SelState::NotSeen
+        SelectionState::NotSeen
     }
 }
 
@@ -45,19 +45,19 @@ struct Window {
 }
 
 impl Window {
-    fn new(prev_pos: usize) -> Self {
+    fn new(goal: usize) -> Self {
         Self {
-            goal: prev_pos,
+            goal,
             top: 0,
             restriction: None,
         }
     }
 
     /// Idempotent method to restrict the winow the first time it's called with
-    /// SelState::Started(idx), which will set the restriction to idx.
-    fn restrict(&mut self, state: SelState) {
+    /// SelectionState::Started(idx), which will set the restriction to idx.
+    fn restrict(&mut self, state: SelectionState) {
         if self.restriction.is_none() {
-            if let SelState::Started(i) = state {
+            if let SelectionState::Started(i) = state {
                 self.restriction = Some(i);
             }
         }
@@ -102,7 +102,7 @@ where
     I: IntoIterator<Item = DisplayLine<'a>>,
 {
     let mut window = Window::new(list_state.window_first);
-    let mut sel_state = SelState::NotSeen;
+    let mut sel_state = SelectionState::NotSeen;
 
     // This stores the lines that will be displayed.
     let mut buffer = BoundedVecDeque::<I::Item>::new(window_size);
@@ -119,7 +119,7 @@ where
         // since the buffer is full, check in on the state machine
         match sel_state {
             // if we haven't seen selection yet, push the window forward
-            SelState::NotSeen => {
+            SelectionState::NotSeen => {
                 window.advance();
                 buffer.push_back(l);
             }
@@ -127,7 +127,7 @@ where
             // as long as the window isn't restricted, advance so to fit the whole selection. This
             // catches the cases where seletion moved "up" beyond the first line previously
             // displayed.
-            SelState::Started(_) => {
+            SelectionState::Started(_) => {
                 if window.is_restricted() {
                     break;
                 } else {
@@ -138,7 +138,7 @@ where
             // Since the whole selection is on screen, the quit either on alignment or restriction.
             // This catches the cases where the selection moved "down" to include lines off the
             // screen, and where the selected items has more lines than the current window.
-            SelState::Complete => {
+            SelectionState::Complete => {
                 if window.is_aligned() || window.is_restricted() {
                     break;
                 } else {
@@ -163,19 +163,29 @@ pub(super) fn fixed<'a, I>(
 where
     I: IntoIterator<Item = DisplayLine<'a>>,
 {
-    let mut sel_state = SelState::default();
+    // TODO: what if at > window size? set "at" to window size that
+    // the window actually shows the selection?
+
+    let mut sel_state = SelectionState::default();
+
+    // Create a queue of blank lines. This is sized to the fixed position,
+    // if the iterator encounters a scenario when the selection starts with
+    // (e.g.) the first display line, the selection will still be drawn in the
+    // correct place.
     let mut buffer =
-        //BoundedVecDeque::from_iter(std::iter::repeat(DisplayLine::filler("")).take(4), 4);
         BoundedVecDeque::from_iter(std::iter::repeat(DisplayLine::filler("")).take(at), at);
 
     for (i, dl) in items.into_iter().enumerate() {
         sel_state.toggle(dl.must_display, i);
-        // always try to fill the window
         match sel_state {
-            SelState::NotSeen => {
+            // haven't seen the first display line in the selection.
+            SelectionState::NotSeen => {
                 buffer.push_back(dl);
             }
+            // The selection has been seen. adjust the queue to hold
+            // the window_size items, and add lines until the buffer is full.
             _ => {
+                // this is idempotent
                 buffer.set_max_len(window_size);
                 buffer.push_back(dl);
                 if buffer.is_full() {
@@ -194,10 +204,10 @@ mod test {
     use tui::text::Spans;
 
     #[test]
-    fn sel_state_toggle() {
-        use SelState::*;
-        let mut state = SelState::default();
-        for (i, (val, exp_state)) in [
+    fn selection_state_toggle() {
+        use SelectionState::*;
+        let mut state = SelectionState::default();
+        for (i, (item_selected, expected_state)) in [
             (false, NotSeen),
             (true, Started(1)),
             (true, Started(1)),
@@ -207,16 +217,19 @@ mod test {
         .into_iter()
         .enumerate()
         {
-            state.toggle(val, i);
-            assert_eq!(state, exp_state);
+            state.toggle(item_selected, i);
+            assert_eq!(state, expected_state);
         }
     }
 
-    fn make_list<'a>(sel_start: usize, sel_end: usize) -> impl Iterator<Item = DisplayLine<'a>> {
+    fn make_list<'a>(
+        selection_start: usize,
+        selection_end: usize,
+    ) -> impl Iterator<Item = DisplayLine<'a>> {
         let l = vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
 
         l.into_iter().enumerate().map(move |(i, s)| {
-            let must_display = i >= sel_start && i <= sel_end;
+            let must_display = i >= selection_start && i <= selection_end;
             DisplayLine {
                 style: Style::default(),
                 line: Spans::from(s),
