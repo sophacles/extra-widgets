@@ -5,7 +5,7 @@ use tui::{
     Frame,
 };
 
-use extra_widgets::separated_list::{Indicator, ItemDisplay, LineIndicators, SeparatedList};
+use extra_widgets::separated_list::{Indicator, ItemDisplay, LineIndicators, StyledList};
 
 use super::super::{words, AppState};
 
@@ -18,7 +18,7 @@ pub fn styled_items<B: Backend>(area: Rect, state: &mut AppState, f: &mut Frame<
             .enumerate()
             .map(|(i, it)| if i % 3 == 0 { it.style(orange) } else { it });
 
-    let demo_list = SeparatedList::new(demo_items)
+    let demo_list = StyledList::new(demo_items)
         .default_style(Style::reset().bg(Color::Black).fg(Color::White))
         .selected_style(Style::default().add_modifier(Modifier::BOLD))
         .selected_indicator(

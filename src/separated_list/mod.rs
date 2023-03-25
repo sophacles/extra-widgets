@@ -3,7 +3,7 @@
 //! This list models its display on by rendering all the [`ListItem`] elements of `items` into
 //! indivdual lines of text, and then moving a window over the lines to acheive the final view.
 // This whole thing is implemented as pipeline of iterators applying a series of transforms
-// on the iterator of ListItems the SeparatedList is generic on.
+// on the iterator of ListItems the StyledList is generic on.
 //
 // The transforms go like this:
 //
@@ -12,7 +12,7 @@
 // ToLines is an internal iterator over the text of of the ListItem's line of text, turing them
 // into DisplayLines
 //
-// DisplayLine can be turned into a fully styled entry displayed in the SeparatedList widget.
+// DisplayLine can be turned into a fully styled entry displayed in the StyledList widget.
 //
 // The rendering pipeline goes like this:
 //
@@ -78,7 +78,7 @@ pub enum WindowType {
 }
 
 /// A general purpose List widget that has several modes of display
-pub struct SeparatedList<'a, I>
+pub struct StyledList<'a, I>
 where
     I: IntoIterator<Item = ListItem<'a>>,
 {
@@ -93,7 +93,7 @@ where
     items: I,
 }
 
-impl<'a, I> SeparatedList<'a, I>
+impl<'a, I> StyledList<'a, I>
 where
     I: IntoIterator<Item = ListItem<'a>>,
 {
@@ -161,7 +161,7 @@ where
     }
 }
 
-impl<'a, I> StatefulWidget for SeparatedList<'a, I>
+impl<'a, I> StatefulWidget for StyledList<'a, I>
 where
     I: IntoIterator<Item = ListItem<'a>>,
 {
@@ -242,7 +242,7 @@ where
     }
 }
 
-impl<'a, I> Widget for SeparatedList<'a, I>
+impl<'a, I> Widget for StyledList<'a, I>
 where
     I: IntoIterator<Item = ListItem<'a>>,
 {

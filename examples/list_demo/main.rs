@@ -15,7 +15,7 @@ use tui::{
     Frame, Terminal,
 };
 
-use extra_widgets::separated_list::{ItemDisplay, ListItem, ListState, SeparatedList};
+use extra_widgets::separated_list::{ItemDisplay, ListItem, ListState, StyledList};
 
 mod demos;
 
@@ -219,7 +219,7 @@ fn draw<B: Backend>(state: &mut AppState, f: &mut Frame<B>) {
         .border_type(BorderType::Thick)
         .style(bstyle);
 
-    let select_list = SeparatedList::new(selections)
+    let select_list = StyledList::new(selections)
         .block(select_bounds)
         .default_style(Style::reset().bg(Color::Black).fg(Color::White))
         .selected_style(Style::default().bg(Color::Blue).fg(Color::White))

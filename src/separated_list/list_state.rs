@@ -3,7 +3,7 @@ use std::cmp::min;
 #[cfg(feature = "serde")]
 use serde_derive::{Deserialize, Serialize};
 
-/// State for a [`SeparatedList`](super::SeparatedList)
+/// State for a [`StyledList`](super::StyledList)
 ///
 /// This state tracks the selected item in a list, and provides methods for cycling the list.
 /// The size of the list is the number of [`ListItem`](super::ListItem)s to cycle through.
