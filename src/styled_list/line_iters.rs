@@ -1,6 +1,6 @@
 use std::iter::Enumerate;
 
-use tui::{style::Style, text::Spans};
+use ratatui::{style::Style, text::Spans};
 
 use super::{DisplayLine, LineIndicators, ListItem, Separator};
 
@@ -153,7 +153,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use tui::{style::Color, symbols::bar::HALF};
+    use ratatui::{style::Color, symbols::bar::HALF};
 
     use super::*;
 

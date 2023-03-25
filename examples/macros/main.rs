@@ -6,7 +6,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-use tui::{
+use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Margin, Rect},
     style::Color,

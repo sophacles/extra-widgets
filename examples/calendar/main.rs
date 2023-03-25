@@ -1,4 +1,4 @@
-use std::{error::Error, io};
+use std::{error::Error, io, rc::Rc};
 
 use crossterm::{
     event::{self, Event, KeyCode},
@@ -6,7 +6,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-use tui::{
+use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -64,14 +64,17 @@ fn draw<B: Backend>(f: &mut Frame<B>) {
 
     let list = make_list();
 
-    for chunk in split_rows(calarea).into_iter().flat_map(split_cols) {
+    for chunk in split_rows(&calarea)
+        .iter()
+        .flat_map(|row| split_cols(row).to_vec())
+    {
         let cal = cals::get_cal(start.month(), start.year(), &list);
         f.render_widget(cal, chunk);
         start = start.replace_month(start.month().next()).unwrap();
     }
 }
 
-fn split_rows(area: Rect) -> Vec<Rect> {
+fn split_rows(area: &Rect) -> Rc<[Rect]> {
     let list_layout = Layout::default()
         .direction(Direction::Vertical)
         .margin(0)
@@ -84,10 +87,10 @@ fn split_rows(area: Rect) -> Vec<Rect> {
             .as_ref(),
         );
 
-    list_layout.split(area)
+    list_layout.split(*area)
 }
 
-fn split_cols(area: Rect) -> Vec<Rect> {
+fn split_cols(area: &Rect) -> Rc<[Rect]> {
     let list_layout = Layout::default()
         .direction(Direction::Horizontal)
         .margin(0)
@@ -101,7 +104,7 @@ fn split_cols(area: Rect) -> Vec<Rect> {
             .as_ref(),
         );
 
-    list_layout.split(area)
+    list_layout.split(*area)
 }
 
 fn make_list() -> CalendarEventStore {

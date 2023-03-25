@@ -30,7 +30,7 @@ mod list_state;
 mod separator;
 mod window_type;
 
-use tui::{
+use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::Style,

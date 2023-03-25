@@ -200,8 +200,8 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use tui::style::Style;
-    use tui::text::Spans;
+    use ratatui::style::Style;
+    use ratatui::text::Spans;
 
     #[test]
     fn selection_state_toggle() {

@@ -1,4 +1,4 @@
-use tui::{style::Style, text::Text};
+use ratatui::{style::Style, text::Text};
 
 /// An Item in the list
 #[derive(Debug, Clone, PartialEq)]

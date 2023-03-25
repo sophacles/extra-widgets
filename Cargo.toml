@@ -7,7 +7,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tui = "0.18.0"
+#tui = "0.18.0"
+ratatui = "0.20.0"
 bounded-vec-deque = { version = "0.1.1", optional = true }
 lazy_static = { version = "1.4.0", optional = true }
 time = { version = "0.3.11", features = ["local-offset", "macros"] , optional = true }

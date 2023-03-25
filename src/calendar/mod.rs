@@ -11,7 +11,7 @@
 //! In the future this may be changed to [chrono](https://crates.io/crates/chrono)
 use std::collections::HashMap;
 
-use tui::{
+use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::Style,
@@ -72,7 +72,7 @@ impl<'a, S: DateStyler> Calendar<'a, S> {
         self
     }
 
-    /// Render the calendar within a [Block](tui::widgets::Block)
+    /// Render the calendar within a [Block](ratatui::widgets::Block)
     pub fn block(mut self, b: Block<'a>) -> Self {
         self.block = Some(b);
         self

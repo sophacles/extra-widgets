@@ -1,4 +1,4 @@
-use tui::{style::Style, symbols::bar::HALF};
+use ratatui::{style::Style, symbols::bar::HALF};
 
 use super::DisplayLine;
 
