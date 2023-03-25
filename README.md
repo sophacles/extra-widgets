@@ -39,7 +39,7 @@ State structs can be serialized with Serde by enabling the `serde` feature. This
 (for example) in apps that wish to save state to disk and restore it on the next run.
 
 Serializeable states:
-  * separated_list::ListState
+  * styled_list::ListState
 
 ### About
 These started as functionality I wanted in my own projects, and I thought they

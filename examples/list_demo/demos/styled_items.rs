@@ -5,7 +5,7 @@ use tui::{
     Frame,
 };
 
-use extra_widgets::separated_list::{Indicator, ItemDisplay, LineIndicators, StyledList};
+use extra_widgets::styled_list::{Indicator, ItemDisplay, LineIndicators, StyledList};
 
 use super::super::{words, AppState};
 

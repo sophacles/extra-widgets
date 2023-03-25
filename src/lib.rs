@@ -29,13 +29,13 @@
 //! (for example) in apps that wish to save state to disk and restore it on the next run.
 //!
 //! Serializeable states:
-//!   * [separated_list::ListState]
+//!   * [styled_list::ListState]
 //!
 #[cfg(feature = "calendar")]
 pub mod calendar;
 
-#[cfg(feature = "separated_list")]
-pub mod separated_list;
+#[cfg(feature = "styled_list")]
+pub mod styled_list;
 
 #[cfg(feature = "text_macros")]
 pub mod text_macros;
